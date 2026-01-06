@@ -1,0 +1,45 @@
+import { dirname, fromFileUrl } from "@std/path";
+import { ok, ResultAsync, safeTry } from "neverthrow";
+
+const readDirectory = ResultAsync.fromThrowable(
+  (path) => Array.fromAsync(Deno.readDir(path)),
+  (e) => `Failed reading directory: ${e}`,
+);
+
+const importModule = ResultAsync.fromThrowable(
+  (path) => import(path),
+  (e) => `Failed importing module: ${e}`,
+);
+
+export const loadCommands = () =>
+  safeTry(async function* () {
+    const commands = new Map<string, Command>();
+
+    const path = dirname(fromFileUrl(import.meta.url));
+    const entries = yield* await readDirectory(path);
+
+    const commandFiles = entries.filter(
+      (entry) =>
+        (entry.isFile && entry.name.endsWith(".ts") &&
+          entry.name !== "index.ts") || entry.isDirectory,
+    );
+
+    for (const entry of commandFiles) {
+      const importPath = entry.isDirectory
+        ? `./${entry.name}/index.ts`
+        : `./${entry.name}`;
+
+      const module = yield* await importModule(importPath);
+      const cmd = Object.values(module).find(
+        (val): val is Command =>
+          val !== null &&
+          typeof val === "object" &&
+          "data" in val &&
+          "execute" in val,
+      );
+
+      if (cmd) commands.set(cmd.data.name, cmd);
+    }
+
+    return ok(commands);
+  });
