@@ -23,36 +23,35 @@ export const ID = {
   START: "monitor_start",
 } as const;
 
-export const MODULE_OPTIONS: SelectMenuComponentOptionData[] = [
-  {
-    label: "Module 1",
-    description: "An example preset configuration",
-    value: "preset_1",
+export function getModuleOptions(modules: Set<string>) {
+  return Array.from(modules).map((mod) => ({
+    label: mod,
+    description: `Scraping module: ${mod}`,
+    value: mod,
     emoji: "⚡",
-  },
-];
+  }));
+}
 
-const SCHEDULE_OPTIONS: SelectMenuComponentOptionData[] = [
-  {
-    label: "Every 3 Minutes",
-    description: "*/3 * * * *",
-    value: "*/3 * * * *",
-    emoji: "3️⃣",
-  },
-  {
-    label: "Every 5 Minutes",
-    description: "*/5 * * * *",
-    value: "*/5 * * * *",
-    emoji: "5️⃣",
-  },
-];
-
-const describeCron = Result.fromThrowable(
+export const describeCron = Result.fromThrowable(
   (c?: string) => cronstrue.toString(c || ""),
   (e) => new Error(`Invalid cron expression: ${e}`),
 );
 
 export function getScheduleOptions(state: ScrapeJobForm) {
+  const SCHEDULE_OPTIONS = [
+    {
+      label: "Every 3 Minutes",
+      description: "*/3 * * * *",
+      value: "*/3 * * * *",
+      emoji: "3️⃣",
+    },
+    {
+      label: "Every 5 Minutes",
+      description: "*/5 * * * *",
+      value: "*/5 * * * *",
+      emoji: "5️⃣",
+    },
+  ];
   const schedule = SCHEDULE_OPTIONS.map((o) => ({
     ...o,
     default: o.value === state.cron,

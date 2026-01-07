@@ -10,13 +10,16 @@ import {
   Snowflake,
 } from "discord.js";
 import { err, ok, safeTry } from "neverthrow";
-import { loadCommands } from "./commands/index.ts";
+import { loadCommands, loadModules } from "$utils/load.ts";
+import { dirname, join } from "@std/path";
+import { fromFileUrl } from "@std/path/from-file-url";
 
 const intents = [GatewayIntentBits.Guilds];
 const partials = [Partials.User, Partials.Channel, Partials.Message];
 
 class Bot {
   commands = new Map<string, Command>();
+  scrapingModules = new Map<string, ScrapingModule>();
   client = new Client({ intents, partials });
 
   constructor() {
@@ -40,6 +43,11 @@ class Bot {
   start = () =>
     safeTry(async function* (this: Bot) {
       this.commands = yield* await loadCommands();
+      console.log("[Bot] Loaded:", Array.from(this.commands.keys()));
+
+      this.scrapingModules = yield* await loadModules();
+      console.log("[Bot] Loaded:", Array.from(this.scrapingModules.keys()));
+
       yield* await this.login(Deno.env.get("BOT_TOKEN"));
       yield* await this.deployCommands(Deno.env.get("GUILD_ID")!);
       return ok(this);

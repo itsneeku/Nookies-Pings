@@ -29,19 +29,19 @@
 
           ui = utils.lib.mkApp {
             drv = pkgs.writeShellScriptBin "start-ui" ''
-              exec ${pkgs.deno}/bin/deno run --allow-all --watch src/ui.ts
+              exec ${pkgs.deno}/bin/deno run --allow-all --watch utils/ui.ts
             '';
           };
 
           main = utils.lib.mkApp {
             drv = pkgs.writeShellScriptBin "start-main" ''
-              exec ${pkgs.deno}/bin/deno run --allow-all --watch src/main.ts
+              exec ${pkgs.deno}/bin/deno run --allow-all --watch bot/main.ts
             '';
           };
 
           worker = utils.lib.mkApp {
             drv = pkgs.writeShellScriptBin "start-worker" ''
-              exec ${pkgs.deno}/bin/deno run --allow-all --watch src/worker.ts
+              exec ${pkgs.deno}/bin/deno run --allow-all --watch modules/worker.ts
             '';
           };
 

@@ -1,6 +1,6 @@
 import "@std/dotenv/load";
 import { Job, Worker } from "bullmq";
-import { bot } from "./bot/bot.ts";
+import { bot } from "./bot.ts";
 import { connection, resultsQueue } from "$utils/queues.ts";
 
 const res = await bot.start();
@@ -10,6 +10,7 @@ const res = await bot.start();
 new Worker(
   resultsQueue.name,
   async (job: Job<ResultJobData>) => {
+    // await bot.ping(job.data.channelId);
   },
   { connection },
 );

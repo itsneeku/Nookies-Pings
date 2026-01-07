@@ -1,12 +1,8 @@
 import "@std/dotenv/load";
 
 import { Job, Worker } from "bullmq";
-import {
-  connection,
-  scrapingQueue,
-} from "$utils/queues.ts";
-import { wrapAsync } from "$utils/safe.ts";
-
+import { connection, scrapingQueue } from "$utils/queues.ts";
+import { mkSafe } from "$utils/safe.ts";
 
 const process = async (job: Job<ScrapeJobData>) => {
   console.log(`[Worker] Job ID: ${job.id}`);
@@ -19,6 +15,8 @@ const process = async (job: Job<ScrapeJobData>) => {
   });
   const process = command.spawn();
 
+  console.log("[Worker] Job Data:", job.data);
+
   const writer = process.stdin.getWriter();
   await writer.write(new TextEncoder().encode(JSON.stringify(job.data)));
   await writer.close();
@@ -30,7 +28,7 @@ const process = async (job: Job<ScrapeJobData>) => {
   return data;
 };
 
-const processor = wrapAsync(process);
+const processor = mkSafe(process);
 
 const processJob = async (job: Job<ScrapeJobData>) => {
   const result = await processor(job);

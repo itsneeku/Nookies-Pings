@@ -1,5 +1,5 @@
 import { ConnectionOptions, Queue } from "bullmq";
-import { mkSafe } from "./safe.ts";
+import { mkSafe } from "$utils/safe.ts";
 
 export const connection: ConnectionOptions = {
   url: Deno.env.get("REDIS_URL")!,

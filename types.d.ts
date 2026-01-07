@@ -2,6 +2,7 @@ import { Job } from "bullmq";
 import {
   ChatInputCommandInteraction,
   MessageComponentInteraction,
+  SelectMenuComponentOptionData,
   SlashCommandBuilder,
   Snowflake,
 } from "discord.js";
@@ -12,7 +13,10 @@ declare global {
     state: ScrapeJobForm;
   }
 
-  interface ScrapeJobForm extends Partial<ScrapeJobData> {}
+  interface ScrapeJobForm extends Partial<ScrapeJobData> {
+    customSchedules: SelectMenuComponentOptionData[];
+    loading?: boolean;
+  }
 
   interface ScrapeJobData {
     url: string;
@@ -38,5 +42,10 @@ declare global {
   interface Command {
     data: SlashCommandBuilder;
     execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
+  }
+
+  interface ScrapingModule {
+    config: any;
+    output: any;
   }
 }
