@@ -29,8 +29,6 @@ async def scrape(url: str):
     ssr_data.get("props").get("pageProps").get("initialData").get("data").get("product")
   )
 
-  utils.log("meow")
-
   product = WalmartProduct(
     name=item.get("name"),
     sku=item.get("usItemId"),
@@ -45,6 +43,8 @@ async def scrape(url: str):
 
 async def main():
   input = utils.read_input()
+  product = await scrape(input["url"])
+  utils.output(product)
 
 
 if __name__ == "__main__":

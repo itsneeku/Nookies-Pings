@@ -21,8 +21,18 @@ export const resultsQueue = new Queue<ResultJobData>(`results`, {
 
 export const addScrapingJob = (
   data: ScrapeJobData,
-) => mkSafe(scrapingQueue, "add")("scrape", data);
+) =>
+  mkSafe(scrapingQueue, "upsertJobScheduler")(
+    data.url,
+    { pattern: data.cron },
+    {
+      name: `${data.url}`,
+      data,
+    },
+  );
 
 export const addResultJob = (
   data: ResultJobData,
-) => mkSafe(resultsQueue, "add")("result", data);
+) => {
+  mkSafe(resultsQueue, "add")("result", data);
+};

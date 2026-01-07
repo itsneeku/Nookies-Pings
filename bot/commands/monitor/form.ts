@@ -155,12 +155,12 @@ export class MonitorForm {
 
   async handleSelectChannel(i: MessageComponentInteraction) {
     await i.deferUpdate();
-    this.update({ module: (i as ChannelSelectMenuInteraction).values[0] });
+    this.update({ channelId: (i as ChannelSelectMenuInteraction).values[0] });
   }
 
   async handleSelectRole(i: MessageComponentInteraction) {
     await i.deferUpdate();
-    this.update({ module: (i as RoleSelectMenuInteraction).values[0] });
+    this.update({ roleId: (i as RoleSelectMenuInteraction).values[0] });
   }
 
   async handleSubmit(i: MessageComponentInteraction) {

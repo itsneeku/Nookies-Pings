@@ -1,14 +1,14 @@
 import "@std/dotenv/load";
 
 import { Job, Worker } from "bullmq";
-import { connection, scrapingQueue } from "$utils/queues.ts";
+import { addResultJob, connection, scrapingQueue } from "$utils/queues.ts";
 import { mkSafe } from "$utils/safe.ts";
 
-const process = async (job: Job<ScrapeJobData>) => {
+const runScraper = async (job: Job<ScrapeJobData>) => {
   console.log(`[Worker] Job ID: ${job.id}`);
 
   const command = new Deno.Command("uv", {
-    args: ["run", "src/scraper/main.py"],
+    args: ["run", "-m", `modules.${job.data.module}.main`],
     stdin: "piped",
     stdout: "piped",
     stderr: "inherit",
@@ -28,23 +28,20 @@ const process = async (job: Job<ScrapeJobData>) => {
   return data;
 };
 
-const processor = mkSafe(process);
+new Worker(scrapingQueue.name, async (job: Job<ScrapeJobData>) => {
+  const result = await mkSafe(runScraper)(job);
 
-const processJob = async (job: Job<ScrapeJobData>) => {
-  const result = await processor(job);
+  addResultJob({
+    data: result.value,
+    scrapeJob: job,
+  });
+
   if (result.isErr()) {
     console.error("[Worker] Error processing job:", result.error);
   } else {
     console.log("[Worker] Job processed successfully:", job.id, result.value);
-    // await addResultJob({
-    //   url: result.value,
-    //   channelId: job.data.channelId,
-    //   scrapeJob: job,
-    // });
   }
-};
-
-new Worker(scrapingQueue.name, processJob, {
+}, {
   connection,
 });
 

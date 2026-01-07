@@ -29,14 +29,7 @@ declare global {
 
   interface ResultJobData {
     scrapeJob: Job<ScrapeJobData>;
-
-    name: string;
-    url: string;
-    sku: string;
-    inStock: boolean;
-
-    price?: number;
-    img?: string;
+    data: any;
   }
 
   interface Command {

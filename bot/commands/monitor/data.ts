@@ -1,4 +1,3 @@
-import { SelectMenuComponentOptionData } from "discord.js";
 import cronstrue from "cronstrue";
 import { Result } from "neverthrow";
 
@@ -23,55 +22,7 @@ export const ID = {
   START: "monitor_start",
 } as const;
 
-export function getModuleOptions(modules: Set<string>) {
-  return Array.from(modules).map((mod) => ({
-    label: mod,
-    description: `Scraping module: ${mod}`,
-    value: mod,
-    emoji: "⚡",
-  }));
-}
-
 export const describeCron = Result.fromThrowable(
   (c?: string) => cronstrue.toString(c || ""),
   (e) => new Error(`Invalid cron expression: ${e}`),
 );
-
-export function getScheduleOptions(state: ScrapeJobForm) {
-  const SCHEDULE_OPTIONS = [
-    {
-      label: "Every 3 Minutes",
-      description: "*/3 * * * *",
-      value: "*/3 * * * *",
-      emoji: "3️⃣",
-    },
-    {
-      label: "Every 5 Minutes",
-      description: "*/5 * * * *",
-      value: "*/5 * * * *",
-      emoji: "5️⃣",
-    },
-  ];
-  const schedule = SCHEDULE_OPTIONS.map((o) => ({
-    ...o,
-    default: o.value === state.cron,
-  }));
-
-  if (state.cron && !SCHEDULE_OPTIONS.some((o) => o.value === state.cron)) {
-    const desc = describeCron(state.cron);
-    schedule.push({
-      label: `Custom: ${desc.isOk() ? state.cron : "Invalid cron"}`,
-      description: desc.isOk() ? desc.value : "Invalid cron expression",
-      value: state.cron || "",
-      emoji: "⚡",
-      default: true,
-    });
-  }
-
-  return [...schedule, {
-    label: "Custom",
-    description: "Set a custom cron schedule",
-    value: ID.SCHEDULE_CUSTOM,
-    emoji: "⚡",
-  }];
-}
