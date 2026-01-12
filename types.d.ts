@@ -1,44 +1,39 @@
 import { Job } from "bullmq";
 import {
   ChatInputCommandInteraction,
-  MessageComponentInteraction,
-  SelectMenuComponentOptionData,
   SlashCommandBuilder,
-  Snowflake,
+  SlashCommandSubcommandsOnlyBuilder,
+  SlashCommandOptionsOnlyBuilder,
 } from "discord.js";
 
 declare global {
-  interface FormInteraction {
-    i: MessageComponentInteraction;
-    state: ScrapeJobForm;
-  }
+  type JobType = "product" | "search";
 
-  interface ScrapeJobForm extends Partial<ScrapeJobData> {
-    customSchedules: SelectMenuComponentOptionData[];
-    loading?: boolean;
-  }
-
-  interface ScrapeJobData {
-    url: string;
-    module: string;
-    channelId: Snowflake;
-    roleId: Snowflake;
+  interface MonitorJobData {
+    store: string;
+    method: JobType;
+    sku: string;
     cron: string;
-    // maxPrice?: number
+    maxPrice?: number;
+    channelId: string;
+    roleId: string;
+    previousResult?: ScrapedProduct;
   }
 
-  interface ResultJobData {
-    scrapeJob: Job<ScrapeJobData>;
-    data: any;
+  interface ScrapedProduct {
+    sku: string;
+    url: string;
+    title: string;
+    inStock: boolean;
+    price?: number;
+    image?: string;
   }
 
   interface Command {
-    data: SlashCommandBuilder;
+    data:
+      | SlashCommandBuilder
+      | SlashCommandSubcommandsOnlyBuilder
+      | SlashCommandOptionsOnlyBuilder;
     execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
-  }
-
-  interface ScrapingModule {
-    config: any;
-    output: any;
   }
 }

@@ -1,0 +1,19 @@
+{
+  "name": "nookies-pings",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "bot": "bun run nookie/main.ts",
+    "worker": "bun run nookie/worker.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "bullmq": "^5.66.4",
+    "discord.js": "^14.25.1"
+  }
+}
