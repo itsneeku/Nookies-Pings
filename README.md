@@ -1,36 +1,57 @@
-<div align='center'>
+<div align="center">
 
 ![Nookie's Pings](https://i.imgur.com/jbf4u4g.png)
 
-[![](https://dcbadge.limes.pink/api/server/27CT2s9kzy)](https://discord.gg/27CT2s9kzy)
+[![Discord](https://dcbadge.limes.pink/api/server/27CT2s9kzy)](https://discord.gg/27CT2s9kzy)
 
 # Nookie's Pings
 
-An open-source, batteries-included restock monitor and Discord bot.
+An open-source, batteries-included restock monitor with Discord integration.
 
 </div>
 
-## How It Works
+## Overview
 
-...
+Nookie's Pings monitors product availability and sends real-time Discord notifications when items come back in stock.
+
+### Architecture
+
+
+- **Cloudflare Worker:** Hosts the Discord bot and WebSocket server
+   - **Discord Bot:** Manages `/monitor` commands and stores requests in D1 database
+   - **WebSocket Server:** Pushes database changes to connected clients
+- **Local Job Scheduler:** Executes scrapers on cron schedules, syncing with the database via WebSocket
 
 ## Requirements
 
-- Discord Application
-  - Fill `DISCORD_...` keys in `.env`
-- Cloudflare Account
-  - Fill `CF_...` keys in `.env`
-- bun
-- uv
+- [Discord Application](https://discord.com/developers/applications/)
+- [Cloudflare Account](https://dash.cloudflare.com)
+- [Bun](https://bun.sh)
+- [uv](https://github.com/astral-sh/uv)
 
-## Usage
+## Setup
 
-1. rename `.env.example` to `.env`
-2. `bunx wrangler deploy` and fill `WORKER_URL` in `.env`
-3. `bun run setup:db`
-4. `uv sync`
-5. `bun run worker`
+1. Copy `.env.example` to `.env` and fill in your credentials
+2. Deploy the worker and add the URL to `.env`
+   ```
+   bunx wrangler deploy
+   ```
+
+3. Initialize the database 
+   ```
+   bun run setup:db
+   ```
+   
+4. Install Python dependencies
+   ```sh
+   uv sync
+   ```
+   
+5. Start the job scheduler
+   ```sh
+   bun run worker
+   ```
 
 ## License
 
-AGPLv3
+[AGPLv3](LICENSE)
