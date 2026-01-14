@@ -3,17 +3,23 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "bot": "bun run nookie/main.ts",
-    "worker": "bun run nookie/worker.ts"
+    "worker": "bun run runner/index.ts",
+    "setup:cmd": "bun run nookie/commands/index.ts",
+    "setup:db": "wrangler d1 migrations apply DB"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "cloudflare": "^5.2.0",
+    "wrangler": "^4.58.0"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
-    "bullmq": "^5.66.4",
+    "@discordjs/rest": "^2.6.0",
+    "cron-parser": "^5.4.0",
+    "discord-api-types": "^0.38.37",
+    "discord-interactions": "^4.4.0",
     "discord.js": "^14.25.1"
   }
 }

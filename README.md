@@ -12,21 +12,24 @@ An open-source, batteries-included restock monitor and Discord bot.
 
 ## How It Works
 
-- `BullMQ`: 2 Redis queues, one for scraping jobs and one for results
-- `Discord.js`: Discord bot to add jobs to the queue and sending out results
-- `zendriver`, `...`: Scrapers made possible using undetectable web automation frameworks
+...
+
+## Requirements
+
+- Discord Application
+  - Fill `DISCORD_...` keys in `.env`
+- Cloudflare Account
+  - Fill `CF_...` keys in `.env`
+- bun
+- uv
 
 ## Usage
 
-1. `mv .env.example .env` and fill it up
-
-### With Nix
-
-### Without Nix
-
-### Docker
-
-- Soon
+1. rename `.env.example` to `.env`
+2. `bunx wrangler deploy` and fill `WORKER_URL` in `.env`
+3. `bun run setup:db`
+4. `uv sync`
+5. `bun run worker`
 
 ## License
 

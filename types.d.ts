@@ -4,20 +4,28 @@ import {
   SlashCommandBuilder,
   SlashCommandSubcommandsOnlyBuilder,
   SlashCommandOptionsOnlyBuilder,
+  APIInteractionResponse,
+  APIApplicationCommandInteraction,
+  APIChatInputApplicationCommandInteractionData,
 } from "discord.js";
 
 declare global {
   type JobType = "product" | "search";
+
+  interface MonitorJobTableRow extends MonitorJobData {
+    id: number;
+    updated_at: number;
+  }
 
   interface MonitorJobData {
     store: string;
     method: JobType;
     sku: string;
     cron: string;
-    maxPrice?: number;
+    maxPrice: number;
     channelId: string;
     roleId: string;
-    previousResult?: ScrapedProduct;
+    previousResult: ScrapedProduct | null;
   }
 
   interface ScrapedProduct {
@@ -34,6 +42,6 @@ declare global {
       | SlashCommandBuilder
       | SlashCommandSubcommandsOnlyBuilder
       | SlashCommandOptionsOnlyBuilder;
-    execute: (interaction: ChatInputCommandInteraction) => Promise<void>;
+    execute: (data: APIApplicationCommandInteraction, env: Env) => Promise<any>;
   }
 }

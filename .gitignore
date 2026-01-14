@@ -3,6 +3,7 @@
 *.rdb
 
 node_modules
+.wrangler
 
 .mypy_cache
 .venv

@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "nookies-pings",
+  "main": "nookie/index.ts",
+  "observability": {
+    "enabled": true
+  },
+  "compatibility_date": "2026-01-12",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "remote": true
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "DO",
+        "class_name": "WebSocketServer"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "new_sqlite_classes": ["WebSocketServer"],
+      "tag": "v1"
+    }
+  ]
+}
