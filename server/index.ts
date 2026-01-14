@@ -1,6 +1,6 @@
 import { InteractionType, InteractionResponseType } from "discord.js";
 import { DurableObject, waitUntil } from "cloudflare:workers";
-import { commands } from "nookie/commands/index";
+import { commands } from "server/commands/index";
 import { deferInteraction, verifyDiscordRequest } from "./discord";
 
 export default {

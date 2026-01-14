@@ -1,5 +1,5 @@
 import { REST, RESTGetCurrentApplicationResult, Routes } from "discord.js";
-import monitor from "nookie/commands/monitor";
+import monitor from "server/commands/monitor";
 
 export const commands = new Map([monitor].map((cmd) => [cmd.data.name, cmd]));
 

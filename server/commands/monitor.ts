@@ -3,7 +3,8 @@ import {
   ChannelType,
   ApplicationCommandType,
 } from "discord.js";
-import { upsertJob } from "nookie/d1";
+import { upsertJob } from "server/d1";
+import { updateInteraction } from "server/discord";
 
 const ID = {
   STORE: "store",
@@ -31,7 +32,6 @@ export default {
     .addStringOption((o) =>
       o.setName(ID.SKU).setDescription("Product SKU").setRequired(true)
     )
-
     .addChannelOption((o) =>
       o
         .setName(ID.CHANNEL)
@@ -65,6 +65,9 @@ export default {
     };
 
     const result = await upsertJob(env.DB, input);
+    await updateInteraction(interaction, env, {
+      content: JSON.stringify(result, null, 2),
+    });
     await env.DO.getByName(":3").broadcast(result);
   },
 } satisfies Command;

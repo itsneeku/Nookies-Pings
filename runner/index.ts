@@ -1,6 +1,6 @@
 import { Cloudflare } from "cloudflare";
 import { JobScheduler } from "./scheduler.ts";
-import { deployCommands } from "nookie/commands/index.ts";
+import { deployCommands } from "server/commands/index.ts";
 
 await deployCommands();
 

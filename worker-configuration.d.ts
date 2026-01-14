@@ -3,7 +3,7 @@
 // Runtime types generated with workerd@1.20260107.1 2026-01-12 nodejs_compat
 declare namespace Cloudflare {
   interface GlobalProps {
-    mainModule: typeof import("./nookie/index");
+    mainModule: typeof import("./server/index");
     durableNamespaces: "WebSocketServer";
   }
   interface Env {
@@ -15,7 +15,7 @@ declare namespace Cloudflare {
     CF_TOKEN: string;
     CF_DB_ID: string;
     CF_ACC_ID: string;
-    DO: DurableObjectNamespace<import("./nookie/index").WebSocketServer>;
+    DO: DurableObjectNamespace<import("./server/index").WebSocketServer>;
     DB: D1Database;
   }
 }

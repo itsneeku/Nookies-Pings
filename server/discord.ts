@@ -25,7 +25,7 @@ export const updateInteraction = async (
   env: Env,
   body?: unknown
 ) => {
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise((resolve) => setTimeout(resolve, 10));
 
   await new REST()
     .setToken(env.DISCORD_TOKEN)
