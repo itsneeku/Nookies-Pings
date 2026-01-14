@@ -4,6 +4,7 @@
 
 node_modules
 .wrangler
+wrangler.jsonc
 
 .mypy_cache
 .venv
