@@ -19,10 +19,13 @@ const ID = {
 const getOption = (name: string, options: any[]) =>
   options.find((o) => o.name === name)?.value;
 
-const stores = fs
-  .readdirSync("scrapers")
-  .filter((f) => f.endsWith(".py") && !f.startsWith("_"))
-  .map((f) => f.replace(/\.py$/, ""));
+let stores: string[] = [];
+try {
+  stores = fs
+    .readdirSync("scrapers")
+    .filter((f) => f.endsWith(".py") && !f.startsWith("_"))
+    .map((f) => f.replace(/\.py$/, ""));
+} catch {}
 
 export default {
   data: new SlashCommandBuilder()
@@ -72,7 +75,7 @@ export default {
 
     const result = await upsertJob(env.DB, input);
     await updateInteraction(interaction, env, {
-      content: JSON.stringify(result, null, 2),
+      content: "```" + JSON.stringify(result, null, 2) + "```",
     });
     await env.DO.getByName(":3").broadcast(result);
   },
