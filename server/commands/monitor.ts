@@ -5,6 +5,7 @@ import {
 } from "discord.js";
 import { upsertJob } from "server/d1";
 import { updateInteraction } from "server/discord";
+import fs from "node:fs";
 
 const ID = {
   STORE: "store",
@@ -18,6 +19,11 @@ const ID = {
 const getOption = (name: string, options: any[]) =>
   options.find((o) => o.name === name)?.value;
 
+const stores = fs
+  .readdirSync("scrapers")
+  .filter((f) => f.endsWith(".py") && !f.startsWith("_"))
+  .map((f) => f.replace(/\.py$/, ""));
+
 export default {
   data: new SlashCommandBuilder()
     .setName("monitor")
@@ -26,7 +32,7 @@ export default {
       o
         .setName(ID.STORE)
         .setDescription("Store Name")
-        .setChoices([])
+        .setChoices(stores.map((store) => ({ name: store, value: store })))
         .setRequired(true)
     )
     .addStringOption((o) =>
