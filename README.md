@@ -12,9 +12,6 @@ An open-source, batteries-included restock monitor with Discord integration.
 
 ## Overview
 
-Nookie's Pings monitors product availability and sends real-time Discord notifications when items come back in stock.
-
-### Architecture
 
 
 - **Cloudflare Worker:** Hosts the Discord bot and WebSocket server
@@ -55,3 +52,5 @@ Nookie's Pings monitors product availability and sends real-time Discord notific
 ## License
 
 [AGPLv3](LICENSE)
+
+**TLDR:** Do whatever. Modify, sell, marry it. As long as you open-source your changes under the same license.
