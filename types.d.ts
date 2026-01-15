@@ -15,6 +15,7 @@ declare global {
   interface MonitorJobTableRow extends MonitorJobData {
     id: number;
     updated_at: number;
+    previousResult: string | null; // TODO always string, even in MonitorJobData. Parse when required.
   }
 
   interface MonitorJobData {

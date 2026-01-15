@@ -4,6 +4,7 @@ import PQueue from "p-queue";
 import { fetchJobs, updateJobResult } from "./d1";
 import { pyScrape } from "./py";
 
+import { notify } from "./discord";
 export class JobScheduler {
   private jobs = new Map<number, Cron>();
   private queue = new PQueue({ concurrency: 10 });
@@ -47,8 +48,15 @@ export class JobScheduler {
       console.log("Executing Job", job.id);
       const result = await this.queue.add(() => pyScrape(job));
       console.log("Result for Job", job.id, result);
-      if (this.hasChanged(result, job.previousResult)) {
-        this.notify(job, result);
+      if (
+        this.shouldNotify(
+          job,
+          result,
+          job.previousResult ? JSON.parse(job.previousResult) : null
+        )
+      ) {
+        console.log(`Job ${job.id} - Change detected, sending notification`);
+        notify(job, result);
       }
 
       await updateJobResult(this.cfClient, job.id, result);
@@ -57,16 +65,15 @@ export class JobScheduler {
     }
   }
 
-  private hasChanged(curr: ScrapedProduct, prev: ScrapedProduct | null) {
+  private shouldNotify(
+    job: MonitorJobTableRow,
+    curr: ScrapedProduct,
+    prev: ScrapedProduct | null
+  ) {
+    if (!curr.inStock || !curr.price) return false;
+    if (job.maxPrice !== 0 && curr.price < job.maxPrice) return false;
     if (!prev) return true;
-    return (
-      curr.inStock !== prev.inStock ||
-      curr.price !== prev.price ||
-      curr.title !== prev.title
-    );
-  }
-
-  private notify(job: MonitorJobTableRow, result: ScrapedProduct) {
-    this.ws.send(JSON.stringify({ job, result }));
+    if (prev.price && curr.price < prev.price) return true;
+    return false;
   }
 }

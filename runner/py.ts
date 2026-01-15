@@ -29,5 +29,5 @@ const pyRun = async <T>(module: string, stdin?: any): Promise<T> => {
 export const pyGetStores = () =>
   pyRun<Record<string, any>>("scrapers.utils.get_patterns");
 
-export const pyScrape = (jobData: MonitorJobData) =>
+export const pyScrape = (jobData: MonitorJobTableRow) =>
   pyRun<ScrapedProduct>("scrapers", jobData);
