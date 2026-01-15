@@ -24,6 +24,7 @@ export class JobScheduler {
 
   schedule(job: MonitorJobTableRow) {
     this.unschedule(job.id);
+    this.execute(job); // run right away
     this.jobs.set(job.id, new Cron(job.cron, () => this.execute(job)));
   }
 
