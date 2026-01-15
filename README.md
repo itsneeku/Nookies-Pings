@@ -12,11 +12,9 @@ An open-source, batteries-included restock monitor with Discord integration.
 
 ## Overview
 
-
-
 - **Cloudflare Worker:** Hosts the Discord bot and WebSocket server
-   - **Discord Bot:** Manages `/monitor` commands and stores requests in D1 database
-   - **WebSocket Server:** Pushes database changes to connected clients
+  - **Discord Bot:** Manages `/monitor` commands and stores requests in D1 database
+  - **WebSocket Server:** Pushes database changes to connected clients
 - **Local Job Scheduler:** Executes scrapers on cron schedules, syncing with the database via WebSocket
 
 ## Requirements
@@ -30,24 +28,38 @@ An open-source, batteries-included restock monitor with Discord integration.
 
 1. Copy `.env.example` to `.env` and fill in your credentials
 2. Deploy the worker and add the URL to `.env`
+
    ```
    bunx wrangler deploy
    ```
 
-3. Initialize the database 
+3. Initialize the database
    ```
    bun run setup:db
    ```
-   
 4. Install Python dependencies
+
    ```sh
    uv sync
    ```
-   
+
 5. Start the job scheduler
    ```sh
    bun run worker
    ```
+
+## Rotating IPv6 Mobile Proxy (AnyIP + `ndppd`)
+
+If you have a mobile data connection with RFC 4941 SLAAC, you may have noticed that you're assigned an entire /64 IPv6 block. If you run a hotspot, each device will have a unique IPv6 address from the same prefix.
+
+You can run `sudo uv run runner/ndppd.py` to setup
+
+- AnyIP to send from any address within your block
+- `ndppd` to receive the response back
+
+While its running, a `IPV6_SUBNET` key will be added to your `.env` and be used to choose a source interface in `scrapers/utils/base.py`
+
+This effectively turns your mobile data connection into a free-ish rotating IPv6 mobile proxy. Some like Cloudflare and Akamai may aggregate by /64 or /48, but others don't.
 
 ## License
 
