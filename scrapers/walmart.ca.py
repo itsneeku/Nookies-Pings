@@ -1,26 +1,64 @@
 from scrapers.utils.base import ScrapedProduct, curl
-from scrapers.utils.ssr import extract_next_ssr_data_html
+from scrapers.utils.ssr import (
+  extract_next_ssr_data_html,
+  extract_next_ssr_data_zendriver,
+)
+import zendriver as zd
 
 patterns = ["walmart.ca"]
 
 
 async def product(sku):
+  data = None
   response = curl(f"https://www.walmart.ca/en/ip/{sku}")
 
-  data = extract_next_ssr_data_html(response.text)
+  if response.status_code == 200:
+    data = extract_next_ssr_data_html(response.text)
+  else:
+    browser = zd.start(headless=True)
+    page = await browser.get(f"https://www.walmart.ca/en/ip/{sku}")
+    await page
+    data = extract_next_ssr_data_zendriver(page)
+
   item = (
     data.get("props").get("pageProps").get("initialData").get("data").get("product")
   )
-
   sold_by_wm = item.get("sellerId") == "0"
-  if not sold_by_wm:
-    return None
 
   return ScrapedProduct(
     sku=item.get("usItemId"),
     url=f"https://www.walmart.ca/en/ip/Nookie/{item.get('usItemId')}",
     title=item.get("name"),
-    inStock=item.get("availabilityStatusV2").get("value") == "IN_STOCK",
+    inStock=sold_by_wm and item.get("availabilityStatusV2").get("value") == "IN_STOCK",
     price=item.get("priceInfo").get("currentPrice").get("price"),
     image=item.get("imageInfo").get("thumbnailUrl"),
   )
+
+
+async def search(url):
+  browser = zd.start(headless=True)
+  page = await browser.get(url)
+  await page
+
+  ssr_data = await extract_next_ssr_data_zendriver(page)
+  items = (
+    ssr_data.get("props")
+    .get("pageProps")
+    .get("initialData")
+    .get("searchResult")
+    .get("itemStacks")[0]
+    .get("items")
+  )
+
+  return [
+    ScrapedProduct(
+      sku=p.get("usItemId"),
+      url=f"https://www.walmart.ca/en/ip/Nookie/{p.get('usItemId')}",
+      title=p.get("name"),
+      inStock=p.get("sellerId") == "0"
+      and p.get("availabilityStatusV2").get("value") == "IN_STOCK",
+      price=p.get("price"),
+      image=p.get("imageInfo").get("thumbnailUrl"),
+    )
+    for p in items
+  ]
