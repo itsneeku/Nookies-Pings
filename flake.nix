@@ -2,10 +2,16 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     utils.url = "github:numtide/flake-utils";
+    ndppd.url = "github:Red54/nixpkgs/ndppd-0.2.6";
   };
 
   outputs =
-    { nixpkgs, utils, ... }:
+    {
+      self,
+      nixpkgs,
+      utils,
+      ndppd,
+    }:
     utils.lib.eachDefaultSystem (
       system:
       let
@@ -13,19 +19,13 @@
       in
       {
         devShells.default = pkgs.mkShell {
-          packages = with pkgs; [
-            bun
-            uv
-            valkey
-          ];
-        };
-
-        apps = {
-          db = utils.lib.mkApp {
-            drv = pkgs.writeShellScriptBin "start-db" ''
-              exec ${pkgs.valkey}/bin/valkey-server
-            '';
-          };
+          packages =
+            with pkgs;
+            [
+              bun
+              uv
+            ]
+            ++ [ ndppd.legacyPackages.${system}.ndppd ];
         };
       }
     );

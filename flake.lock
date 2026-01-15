@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "ndppd": {
+      "locked": {
+        "lastModified": 1735809386,
+        "narHash": "sha256-L2bD/3hiKWDtGyU9CXicjyq2T39ChFOfmHurK+hLDPU=",
+        "owner": "Red54",
+        "repo": "nixpkgs",
+        "rev": "05985a6a05140f381269221eef009bc3b52b88f2",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Red54",
+        "ref": "ndppd-0.2.6",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1766309749,
@@ -18,6 +34,7 @@
     },
     "root": {
       "inputs": {
+        "ndppd": "ndppd",
         "nixpkgs": "nixpkgs",
         "utils": "utils"
       }
