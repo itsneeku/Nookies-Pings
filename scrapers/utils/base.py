@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional
 import ipaddress
 import random
-from curl_cffi import requests
+import curl_cffi
 
 
 @dataclass
@@ -24,7 +24,7 @@ def get_random_ipv6(subnet):
   return str(ipaddress.IPv6Address(net_addr_int + rand_int))
 
 
-def curl(url: str, impersonate="chrome"):
+def curl(url: str, impersonate="safari_ios"):
   subnet = None
   try:
     with open(".env") as f:
@@ -35,4 +35,4 @@ def curl(url: str, impersonate="chrome"):
   except FileNotFoundError:
     pass
   ip = get_random_ipv6(subnet) if subnet else None
-  requests.get(url, interface=ip, impersonate=impersonate, timeout=20)
+  return curl_cffi.get(url, interface=ip, impersonate=impersonate, timeout=20)

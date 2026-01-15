@@ -2,6 +2,7 @@ from zendriver import Tab
 
 from selectolax.lexbor import LexborHTMLParser
 import json
+import sys
 
 
 async def extract_next_ssr_data_zendriver(page: Tab):
@@ -18,5 +19,5 @@ def extract_next_ssr_data_html(html: str):
   """
   Extract SSR data used for hydration in Next.js
   """
-  scriptText = LexborHTMLParser(html).css_first("#__NEXT_DATA__").text()
-  return json.loads(scriptText)
+  script = LexborHTMLParser(html).css_first("#__NEXT_DATA__")
+  return json.loads(script.text())

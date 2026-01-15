@@ -14,7 +14,7 @@ async def execute(module, input_data: dict):
     result = await getattr(module, method_name)(sku)
     print(json.dumps(asdict(result)))
   except Exception as e:
-    print(json.dumps({"error": str(e)}))
+    print(json.dumps({"error": str(e), "trace": str(e.__traceback__)}))
 
 
 if __name__ == "__main__":

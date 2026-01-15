@@ -1,12 +1,11 @@
-from scrapers.utils.base import ScrapedProduct
-from curl_cffi import requests
+from scrapers.utils.base import ScrapedProduct, curl
 from scrapers.utils.ssr import extract_next_ssr_data_html
 
 patterns = ["walmart.ca"]
 
 
 async def product(sku):
-  response = requests.get(f"https://www.walmart.ca/en/ip/{sku}", impersonate="chrome")
+  response = curl(f"https://www.walmart.ca/en/ip/{sku}")
 
   data = extract_next_ssr_data_html(response.text)
   item = (
