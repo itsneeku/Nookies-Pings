@@ -1,24 +1,28 @@
-from scrapers.utils.base import ScrapedProduct, curl
+from scrapers.utils.base import ScrapedProduct, curl_interface
 from scrapers.utils.ssr import (
   extract_next_ssr_data_html,
   extract_next_ssr_data_zendriver,
 )
 import zendriver as zd
+import curl_cffi
 
 patterns = ["walmart.ca"]
 
 
 async def product(sku):
+  url = f"https://www.walmart.ca/en/ip/{sku}"
   data = None
-  response = curl(f"https://www.walmart.ca/en/ip/{sku}")
+  response = curl_cffi.get(
+    url, interface=curl_interface(), impersonate="safari_ios", timeout=20
+  )
 
   if response.status_code == 200:
     data = extract_next_ssr_data_html(response.text)
   else:
-    browser = zd.start(headless=True)
-    page = await browser.get(f"https://www.walmart.ca/en/ip/{sku}")
+    browser = await zd.start(headless=True)
+    page = await browser.get(url)
     await page
-    data = extract_next_ssr_data_zendriver(page)
+    data = await extract_next_ssr_data_zendriver(page)
 
   item = (
     data.get("props").get("pageProps").get("initialData").get("data").get("product")
@@ -36,7 +40,7 @@ async def product(sku):
 
 
 async def search(url):
-  browser = zd.start(headless=True)
+  browser = await zd.start(headless=True)
   page = await browser.get(url)
   await page
 
