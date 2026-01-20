@@ -4,17 +4,7 @@ import {
   APIInteractionResponse,
   InteractionResponseType,
   MessageFlags,
-  REST,
-  RESTGetCurrentApplicationResult,
-  Routes,
 } from "discord.js";
-
-const getPubKey = async (env: Env) =>
-  (
-    (await new REST()
-      .setToken(env.DISCORD_TOKEN)
-      .get(Routes.currentApplication())) as RESTGetCurrentApplicationResult
-  ).verify_key;
 
 export const deferInteraction = (ephemeral: boolean = true) =>
   Response.json({
@@ -37,30 +27,7 @@ export const verifyDiscordRequest = async (request: Request, env: Env) => {
     body,
     signature,
     timestamp,
-    await getPubKey(env),
+    env.DISCORD_PUB_KEY,
   );
   return valid ? (JSON.parse(body) as APIInteraction) : null;
 };
-
-export const upsertJob = async (db: D1Database, data: MonitorInput) =>
-  await db
-    .prepare(
-      `INSERT INTO jobs (store, method, channel, role, cron, custom, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(store, method, custom) DO UPDATE SET
-         channel = excluded.channel,
-         role = excluded.role,
-         cron = excluded.cron,
-         updated_at = excluded.updated_at
-       RETURNING *`,
-    )
-    .bind(
-      data.store,
-      data.method,
-      data.channel,
-      data.role,
-      data.cron,
-      JSON.stringify(data.custom),
-      Math.floor(Date.now() / 1000),
-    )
-    .first();
