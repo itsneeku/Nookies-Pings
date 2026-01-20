@@ -1,6 +1,5 @@
 import { verifyKey } from "discord-interactions";
 import {
-  APIApplicationCommandInteraction,
   APIInteraction,
   APIInteractionResponse,
   InteractionResponseType,
@@ -10,37 +9,23 @@ import {
   Routes,
 } from "discord.js";
 
-export const deferInteraction = (ephemeral: boolean = true) =>
-  Response.json({
-    type: InteractionResponseType.DeferredChannelMessageWithSource,
-    data: ephemeral
-      ? {
-          flags: MessageFlags.Ephemeral,
-        }
-      : undefined,
-  } satisfies APIInteractionResponse);
-
-export const updateInteraction = async (
-  interaction: APIApplicationCommandInteraction,
-  env: Env,
-  body?: unknown
-) => {
-  await new Promise((resolve) => setTimeout(resolve, 10));
-
-  await new REST()
-    .setToken(env.DISCORD_TOKEN)
-    .patch(
-      Routes.webhookMessage(interaction.application_id, interaction.token),
-      { body }
-    );
-};
-
 const getPubKey = async (env: Env) =>
   (
     (await new REST()
       .setToken(env.DISCORD_TOKEN)
       .get(Routes.currentApplication())) as RESTGetCurrentApplicationResult
   ).verify_key;
+
+export const deferInteraction = (ephemeral: boolean = true) =>
+  Response.json({
+    type: InteractionResponseType.DeferredChannelMessageWithSource,
+    data:
+      ephemeral ?
+        {
+          flags: MessageFlags.Ephemeral,
+        }
+      : undefined,
+  } satisfies APIInteractionResponse);
 
 export const verifyDiscordRequest = async (request: Request, env: Env) => {
   const signature = request.headers.get("x-signature-ed25519");
@@ -52,7 +37,30 @@ export const verifyDiscordRequest = async (request: Request, env: Env) => {
     body,
     signature,
     timestamp,
-    await getPubKey(env)
+    await getPubKey(env),
   );
   return valid ? (JSON.parse(body) as APIInteraction) : null;
 };
+
+export const upsertJob = async (db: D1Database, data: MonitorInput) =>
+  await db
+    .prepare(
+      `INSERT INTO jobs (store, method, channel, role, cron, custom, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(store, method, custom) DO UPDATE SET
+         channel = excluded.channel,
+         role = excluded.role,
+         cron = excluded.cron,
+         updated_at = excluded.updated_at
+       RETURNING *`,
+    )
+    .bind(
+      data.store,
+      data.method,
+      data.channel,
+      data.role,
+      data.cron,
+      JSON.stringify(data.custom),
+      Math.floor(Date.now() / 1000),
+    )
+    .first();

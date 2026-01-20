@@ -1,5 +1,5 @@
 const pyRun = async <T>(module: string, stdin?: any): Promise<T> => {
-  console.log('[pyRun]:', stdin);
+  // console.log("[pyRun]:", stdin);
   const inputBuffer = stdin ? Buffer.from(JSON.stringify(stdin)) : undefined;
   const proc = Bun.spawnSync(["uv", "run", "python", "-m", module], {
     cwd: process.cwd(),
@@ -23,11 +23,24 @@ const pyRun = async <T>(module: string, stdin?: any): Promise<T> => {
     // );
   }
 
+  const result = stdout.trim();
+  // console.log("[pyRun stdout]:", result);
+
   return JSON.parse(stdout.trim()) as T;
 };
 
-export const pyGetStores = () =>
-  pyRun<Record<string, any>>("scrapers.utils.get_patterns");
+export const pyScrape = async (jobData: MonitorJobTableRow) => {
+  let customData: Record<string, any> = {};
+  if (typeof jobData.custom === "string") {
+    try {
+      customData = JSON.parse(jobData.custom);
+    } catch {
+      customData = {};
+    }
+  } else if (jobData.custom && typeof jobData.custom === "object") {
+    customData = jobData.custom as Record<string, any>;
+  }
+  Object.assign(jobData, customData);
 
-export const pyScrape = (jobData: MonitorJobTableRow) =>
-  pyRun<ScrapedProduct>("scrapers", jobData);
+  return await pyRun<ScrapedProduct>("monitors", jobData);
+};

@@ -1,4 +1,4 @@
-from scrapers.utils.base import ScrapedProduct
+from monitors._utils.base import ScrapedProduct
 import zendriver as zd
 import asyncio
 
@@ -8,32 +8,38 @@ CONFIG = zd.Config(
     "--blink-settings=imagesEnabled=false",
   ],
 )
-PATTERNS = ["ebgames.ca"]
 
 
-async def product_page(url):
-  config = zd.Config(
-    headless=False,
-    browser_args=[
-      "--blink-settings=imagesEnabled=false",
-    ],
-  )
-  browser = await zd.start(config)
-  page = browser.main_tab
-  await page.send(zd.cdp.emulation.set_data_saver_override(data_saver_enabled=True))
-  await page.get(url)
+async def scrape_product_page(page: zd.Tab):
   await page.wait_for("body")
 
-  res = ScrapedProduct(
-    sku=(await page.select("body")).get("class_").split("-")[-1],
-    url=(await page.query_selector('link[rel="canonical"]')).get("href"),
-    title=(await page.select(".prodTitle")).text.strip(),
-    inStock="Deliver to Home" in (await page.select(".productAvailabilityNew")).text,
-    price=(await page.select("span.prodPriceCont")).text.replace("$", "").strip(),
-    image=(await page.select("#packshotImage")).get("src"),
+  body = await page.select("body")
+  bodyClass = body.attrs.class_
+  sku = bodyClass.split("-")[-1]
+
+  urlLink = await page.select('link[rel="canonical"]')
+  url = urlLink.attrs.href
+
+  titleElem = await page.select(".prodTitle")
+  title = titleElem.text.strip()
+
+  stockStatusElem = await page.select(".productAvailabilityNew")
+  inStock = "Deliver to Home" in stockStatusElem.text
+
+  priceElem = await page.select("span.prodPriceCont")
+  price = float(priceElem.text.replace("$", "").strip())
+
+  imageElem = await page.select("#packshotImage")
+  image = imageElem.attrs.src
+
+  return ScrapedProduct(
+    sku,
+    url,
+    title,
+    inStock,
+    price,
+    image,
   )
-  await browser.stop()
-  return res
 
 
 async def fetch(page: zd.Tab, sku: str):
@@ -53,8 +59,8 @@ async def fetch(page: zd.Tab, sku: str):
 
 async def get_product_sku(page: zd.Tab, url: str):
   await page.get(url)
-  await page.wait_for_ready_state("complete")
-  return (await page.select(".variantSku")).get("value")
+  await page.wait_for_ready_state("complete")  # wait for cf challenge
+  return (await page.select(".variantSku")).attrs.value
 
 
 async def main():
@@ -68,7 +74,3 @@ async def main():
   result = await fetch(page, sku)
   print(result)
   await browser.stop()
-
-
-if __name__ == "__main__":
-  asyncio.run(main())

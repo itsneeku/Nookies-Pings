@@ -1,7 +1,7 @@
 import { InteractionType, InteractionResponseType } from "discord.js";
 import { DurableObject, waitUntil } from "cloudflare:workers";
-import { commands } from "server/commands/index";
-import { deferInteraction, verifyDiscordRequest } from "./discord";
+import { deferInteraction, verifyDiscordRequest } from "./utils";
+import { commands } from "../commands";
 
 export default {
   async fetch(request, env) {
@@ -17,7 +17,7 @@ export default {
 
       case InteractionType.ApplicationCommand:
         waitUntil(
-          commands.get(interaction.data.name)!.execute(interaction, env)
+          commands.get(interaction.data.name)!.execute(interaction, env),
         );
         return deferInteraction();
 

@@ -2,7 +2,6 @@ from zendriver import Tab
 
 from selectolax.lexbor import LexborHTMLParser
 import json
-import sys
 
 
 async def extract_next_ssr_data_zendriver(page: Tab):
