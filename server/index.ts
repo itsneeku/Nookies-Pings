@@ -1,39 +1,67 @@
-import { InteractionType, InteractionResponseType } from "discord.js";
+import { isTaggedError } from "better-result";
 import { waitUntil } from "cloudflare:workers";
-import { deferInteraction, verifyDiscordRequest } from "./utils";
-import { commands } from "../commands";
-import { WebSocketServer } from "./ws";
+import { InteractionResponseType, InteractionType } from "discord.js";
 
-const WS_ID = ":3";
+import { commands } from "@/lib/discord/commands";
+
+import { deferInteraction, verifyDiscordRequest, updateInteraction } from "./utils";
+import { WebSocketServer } from "./ws";
 
 export default {
   async fetch(request, env) {
     // Handle WebSocket Upgrades
     if (request.headers.get("Upgrade") === "websocket") {
-      const stub = env.DO.getByName(WS_ID);
-      return stub.fetch(request);
+      return env.DO.getByName(env.WS_SERVER_ID).fetch(request);
     }
 
     // Verify Discord Request
-    const interaction = await verifyDiscordRequest(request, env);
-    if (!interaction) {
+    const verifyResult = await verifyDiscordRequest(request, env);
+
+    if (verifyResult.isErr()) {
+      console.error("Request validation failed:", verifyResult.error);
       return Response.json({ error: "Invalid Request" }, { status: 401 });
     }
 
     // Handle Interactions
+    const interaction = verifyResult.value;
+
     switch (interaction.type) {
       case InteractionType.Ping:
         return Response.json({ type: InteractionResponseType.Pong });
 
       case InteractionType.ApplicationCommand: {
-        const command = commands.get(interaction.data.name);
+        const command = commands[interaction.data.name as keyof typeof commands];
 
         if (!command) {
           console.error(`Unknown command: ${interaction.data.name}`);
           return Response.json({ error: "Command not found" }, { status: 400 });
         }
 
-        waitUntil(command.execute(interaction, env));
+        waitUntil(
+          (async () => {
+            const result = await command.execute(interaction, env);
+
+            if (result.isErr()) {
+              console.error("Command execution failed:", result.error);
+              const updateResult = await updateInteraction(interaction, env, {
+                content: isTaggedError(result.error)
+                  ? `Error: ${result.error.message}`
+                  : "An unexpected error occurred",
+              });
+              if (updateResult.isErr()) {
+                console.error("Failed to update interaction:", updateResult.error);
+              }
+            } else {
+              const updateResult = await updateInteraction(interaction, env, {
+                content: result.value,
+              });
+              if (updateResult.isErr()) {
+                console.error("Failed to update interaction:", updateResult.error);
+              }
+            }
+          })(),
+        );
+
         return deferInteraction();
       }
 

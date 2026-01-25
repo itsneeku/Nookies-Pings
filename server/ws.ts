@@ -1,4 +1,7 @@
+import { Result } from "better-result";
 import { DurableObject } from "cloudflare:workers";
+
+import { WebSocketError } from "@/lib/errors";
 
 export class WebSocketServer extends DurableObject<Env> {
   override async fetch(_request: Request) {
@@ -18,15 +21,31 @@ export class WebSocketServer extends DurableObject<Env> {
     const websockets = this.ctx.getWebSockets();
     if (websockets.length === 0) return;
 
-    const message = JSON.stringify(payload);
+    const messageResult = Result.try({
+      try: () => JSON.stringify(payload),
+      catch: (e) => new WebSocketError({ operation: "JSON.stringify", cause: e }),
+    });
 
-    for (const ws of websockets) {
-      try {
-        ws.send(message);
-      } catch (err) {
-        console.error("[WebSocketServer] Broadcast error:", err);
-        ws.close();
-      }
-    }
+    await messageResult.match({
+      ok: async (message) => {
+        for (const ws of websockets) {
+          const sendResult = Result.try({
+            try: () => ws.send(message),
+            catch: (e) => new WebSocketError({ operation: "ws.send", cause: e }),
+          });
+
+          sendResult.match({
+            ok: () => {},
+            err: (err) => {
+              console.error("[WebSocketServer] Broadcast error:", err.message);
+              ws.close();
+            },
+          });
+        }
+      },
+      err: async (err) => {
+        console.error("[WebSocketServer] Broadcast error:", err.message);
+      },
+    });
   }
 }
