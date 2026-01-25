@@ -1,8 +1,8 @@
 import argparse
+import ipaddress
+import os
 import subprocess
 import sys
-import os
-import ipaddress
 import tempfile
 
 

@@ -1,9 +1,11 @@
-from monitors._utils.base import ScrapedProduct
+from monitors._utils.base import Product, SearchMonitorResult
 from monitors._utils.ssr import extract_next_ssr_data_zendriver
 import zendriver as zd
+import json
 
 
-async def main(url):
+async def main(input):
+  url = input["url"]
   browser = await zd.start(headless=True)
   page = await browser.get(url)
   await page
@@ -18,17 +20,20 @@ async def main(url):
     .get("items")
   )
 
-  return [
-    ScrapedProduct(
+  new_products = []
+
+  for p in items:
+    product = Product(
       sku=p.get("usItemId"),
-      url=f"https://www.walmart.ca/en/ip/Nookie/{p.get('usItemId')}",
+      url=f"https://www.walmart.ca/en/ip/{p.get('usItemId')}",
       title=p.get("name"),
       inStock=p.get("sellerId") == "0"
       and p.get("availabilityStatusV2").get("value") == "IN_STOCK",
       price=p.get("price"),
       image=p.get("imageInfo").get("thumbnailUrl"),
     )
-    for p in items
-  ]
+    new_products.append(product)
 
-#   'walmart': 'https://www.walmart.ca/en/browse/toys/trading-cards/pokemon-cards/10011_31745_6000204969672?facet=retailer_type%3AWalmart',
+  await browser.stop()
+
+  return SearchMonitorResult(newProducts=new_products)

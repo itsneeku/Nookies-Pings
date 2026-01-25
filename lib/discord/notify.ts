@@ -12,7 +12,7 @@ import {
 
 import { DiscordError } from "@/lib/errors";
 
-export const notify = (product: Product, job: TableRow): Promise<Result<void, DiscordError>> => {
+export const notify = (product: Product, job: TableRow) => {
   const message = new TextDisplayBuilder().setContent(
     `||${product.title} ${roleMention(job.role as string)}||`,
   );

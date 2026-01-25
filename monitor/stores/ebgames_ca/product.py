@@ -1,4 +1,4 @@
-from monitors._utils.base import ScrapedProduct
+from monitors._utils.base import Product
 import zendriver as zd
 import asyncio
 
@@ -32,7 +32,7 @@ async def scrape_product_page(page: zd.Tab):
   imageElem = await page.select("#packshotImage")
   image = imageElem.attrs.src
 
-  return ScrapedProduct(
+  return Product(
     sku,
     url,
     title,
@@ -63,14 +63,12 @@ async def get_product_sku(page: zd.Tab, url: str):
   return (await page.select(".variantSku")).attrs.value
 
 
-async def main():
+async def main(input):
+  url = input["url"]
   browser = await zd.start(CONFIG)
   page = browser.main_tab
   await page.send(zd.cdp.emulation.set_data_saver_override(data_saver_enabled=True))
-  sku = await get_product_sku(
-    page,
-    "https://www.ebgames.ca/Trading%20Cards/Games/961429/magic-the-gathering-teenage-mutant-ninja-turtles-booster-box",
-  )
+  sku = await get_product_sku(page, url)
   result = await fetch(page, sku)
   print(result)
   await browser.stop()

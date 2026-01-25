@@ -1,4 +1,4 @@
-from monitors._utils.base import ScrapedProduct, get_random_ipv6, shouldNotify
+from monitors._utils.base import Product, get_random_ipv6
 from monitors._utils.ssr import (
   extract_next_ssr_data_html,
   extract_next_ssr_data_zendriver,
@@ -6,11 +6,8 @@ from monitors._utils.ssr import (
 import zendriver as zd
 import curl_cffi
 
-import sys
-
 
 async def main(input):
-  print(input, file=sys.stderr)
   url = f"https://www.walmart.ca/en/ip/{input['sku']}"
   data = None
   response = curl_cffi.get(
@@ -30,7 +27,7 @@ async def main(input):
   )
   sold_by_wm = item.get("sellerId") == "0"
 
-  product = ScrapedProduct(
+  return Product(
     sku=item.get("usItemId"),
     url=f"https://www.walmart.ca/en/ip/{item.get('usItemId')}",
     title=item.get("name"),
@@ -38,10 +35,3 @@ async def main(input):
     price=item.get("priceInfo").get("currentPrice").get("price"),
     image=item.get("imageInfo").get("thumbnailUrl"),
   )
-  product.shouldNotify = shouldNotify(
-    ScrapedProduct(**input.get("previousResult")), product
-  )
-
-  return product
-
-
