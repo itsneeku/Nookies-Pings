@@ -17,7 +17,7 @@ export class WebSocketServer extends DurableObject<Env> {
     });
   }
 
-  async broadcast(payload: unknown) {
+  async broadcast(payload: WebSocketPayload) {
     const websockets = this.ctx.getWebSockets();
     if (websockets.length === 0) return;
 
