@@ -58,9 +58,9 @@ ws.on("message", async (data: Buffer) => {
     console.log(`[Runner] Received message: ${JSON.stringify(payload)}`);
 
     if (payload.store && payload.monitor && payload.message) {
-      yield* Result.await(
-        db.upsertRow(payload.store, payload.monitor, payload.message as TableRow),
-      );
+      for (const row of payload.message) {
+        yield* Result.await(db.upsertRow(payload.store, payload.monitor, row, true));
+      }
       await scheduler.reschedule(payload.store, payload.monitor);
     }
     return Result.ok(void 0);

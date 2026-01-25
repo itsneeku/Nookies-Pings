@@ -84,7 +84,7 @@ export class Database {
     return this.maps[this.tableKey(store, monitor)]?.get(id);
   }
 
-  async upsertRow(store: string, monitor: string, data: TableRow) {
+  async upsertRow(store: string, monitor: string, data: TableRow, skipDatabase: boolean = false) {
     const { id, ...updateData } = data;
     const table = this.tableConfig(store, monitor)?.table;
     const map = this.maps[this.tableKey(store, monitor)];
@@ -93,12 +93,21 @@ export class Database {
 
     return Result.tryPromise({
       try: async () => {
-        if (id !== undefined && map.has(id)) {
-          await this.db.update(table).set(updateData).where(eq(table.id, id));
-          const existing = map.get(id);
-          if (existing) Object.assign(existing, updateData);
-        } else if (id !== undefined) {
-          await this.db.insert(table).values({ ...updateData, id });
+        if (!skipDatabase) {
+          if (id !== undefined && map.has(id)) {
+            await this.db.update(table).set(updateData).where(eq(table.id, id));
+          } else if (id !== undefined) {
+            await this.db.insert(table).values({ ...updateData, id });
+          }
+        }
+
+        if (id !== undefined) {
+          if (map.has(id)) {
+            const existing = map.get(id);
+            if (existing) Object.assign(existing, updateData);
+          } else {
+            map.set(id, { ...updateData, id });
+          }
         }
       },
       catch: (cause: unknown) => new DatabaseError({ operation: "upsertRow", cause }),
