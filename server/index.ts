@@ -1,4 +1,3 @@
-import { isTaggedError } from "better-result";
 import { waitUntil } from "cloudflare:workers";
 import { InteractionResponseType, InteractionType } from "discord.js";
 
@@ -41,24 +40,14 @@ export default {
           (async () => {
             const result = await command.execute(interaction, env);
 
-            if (result.isErr()) {
-              console.error("Command execution failed:", result.error);
-              const updateResult = await updateInteraction(interaction, env, {
-                content: isTaggedError(result.error)
-                  ? `Error: ${result.error.message}`
-                  : "An unexpected error occurred",
-              });
-              if (updateResult.isErr()) {
-                console.error("Failed to update interaction:", updateResult.error);
-              }
-            } else {
-              const updateResult = await updateInteraction(interaction, env, {
-                content: result.value,
-              });
-              if (updateResult.isErr()) {
-                console.error("Failed to update interaction:", updateResult.error);
-              }
-            }
+            if (result.isErr()) console.error("Command execution failed:", result.error);
+
+            const updateResult = await updateInteraction(interaction, env, {
+              content: result.isErr() ? "An unexpected error occurred" : result.value,
+            });
+
+            if (updateResult.isErr())
+              console.error("Failed to update interaction:", updateResult.error);
           })(),
         );
 

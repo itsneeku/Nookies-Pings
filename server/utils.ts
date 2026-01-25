@@ -10,8 +10,6 @@ import {
   Routes,
 } from "discord.js";
 
-import { DiscordError, ParseError } from "@/lib/errors";
-
 export const deferInteraction = (ephemeral: boolean = true) =>
   Response.json({
     type: InteractionResponseType.DeferredChannelMessageWithSource,
@@ -27,12 +25,10 @@ export const verifyDiscordRequest = async (request: Request, env: Env) => {
   const timestamp = request.headers.get("x-signature-timestamp");
 
   if (!signature || !timestamp) {
-    return Result.err(
-      new DiscordError({
-        operation: "verify headers",
-        cause: "Missing signature or timestamp headers",
-      }),
-    );
+    return Result.err({
+      op: "[verifyDiscordRequest] verify headers",
+      cause: "Missing signature or timestamp headers",
+    });
   }
 
   const body = await request.text();
@@ -41,31 +37,27 @@ export const verifyDiscordRequest = async (request: Request, env: Env) => {
     const valid = yield* Result.await(
       Result.tryPromise({
         try: () => verifyKey(body, signature, timestamp, env.DISCORD_PUB_KEY),
-        catch: (cause) =>
-          new DiscordError({
-            operation: "verify signature",
-            cause,
-          }),
+        catch: (cause) => ({
+          op: "[verifyDiscordRequest] verify signature",
+          cause,
+        }),
       }),
     );
 
     if (!valid) {
-      return Result.err(
-        new DiscordError({
-          operation: "verify signature",
-          cause: "Invalid signature",
-        }),
-      );
+      return Result.err({
+        op: "[verifyDiscordRequest] verify signature",
+        cause: "Invalid signature",
+      });
     }
 
     const parsed = yield* Result.await(
       Result.tryPromise({
         try: async () => JSON.parse(body) as APIInteraction,
-        catch: (cause) =>
-          new ParseError({
-            source: "request body",
-            cause,
-          }),
+        catch: (cause) => ({
+          op: "[verifyDiscordRequest] parse body",
+          cause,
+        }),
       }),
     );
 
@@ -85,6 +77,6 @@ export const updateInteraction = async (
         .setToken(env.DISCORD_TOKEN)
         .patch(Routes.webhookMessage(interaction.application_id, interaction.token), { body });
     },
-    catch: (cause) => new DiscordError({ operation: "updateInteraction", cause }),
+    catch: (cause) => ({ op: "[updateInteraction] execute", cause }),
   });
 };
