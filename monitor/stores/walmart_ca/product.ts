@@ -1,7 +1,6 @@
 import { Cron } from "croner";
 import { SlashCommandSubcommandBuilder } from "discord.js";
-import { type InferInsertModel } from "drizzle-orm";
-import { eq } from "drizzle-orm";
+import { eq, InferInsertModel } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/d1";
 
 import { notify } from "@/lib/discord/notify";
@@ -85,5 +84,3 @@ export default {
   initJobs,
   createJob,
 } satisfies Monitor;
-
-export { createJob };

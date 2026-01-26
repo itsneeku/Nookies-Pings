@@ -95,5 +95,3 @@ export default {
   initJobs,
   createJob,
 } satisfies Monitor;
-
-export { createJob };

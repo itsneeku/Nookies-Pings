@@ -1,4 +1,4 @@
-from monitors._utils.base import Product
+from monitor.utils.base import Product
 import zendriver as zd
 import asyncio
 
