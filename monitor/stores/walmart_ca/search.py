@@ -4,9 +4,9 @@ import zendriver as zd
 
 async def main(input):
   url = input["url"]
-  browser = await zd.start(headless=True)
+  browser = await zd.start(headless=False)
   page = await browser.get(url)
-  await page
+  await page.wait_for_ready_state("complete")
 
   ssr_data = await extract_next_ssr_data_zendriver(page)
   items = (
@@ -21,14 +21,17 @@ async def main(input):
   return [
     {
       "sku": p.get("usItemId"),
-      "url": f"https://www.walmart.ca/en/ip/{p.get('usItemId')}",
+      "url": f"https://www.walmart.ca/en/ip/{p.get('usItemId')}"
+      if p.get("usItemId")
+      else None,
       "title": p.get("name"),
       "inStock": 1
       if p.get("sellerId") == "0"
-      and p.get("availabilityStatusV2").get("value") == "IN_STOCK"
+      and p.get("availabilityStatusV2", {}).get("value") == "IN_STOCK"
       else 0,
       "price": p.get("price"),
-      "image": p.get("imageInfo").get("thumbnailUrl"),
+      "image": p.get("imageInfo", {}).get("thumbnailUrl"),
     }
     for p in items
+    if p.get("usItemId")
   ]
