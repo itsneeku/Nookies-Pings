@@ -6,6 +6,7 @@ import { drizzle } from "drizzle-orm/bun-sqlite";
 import { SQLiteTableWithColumns } from "drizzle-orm/sqlite-core";
 import { drizzle as drizzleProxy } from "drizzle-orm/sqlite-proxy";
 
+import { conflictUpdateSet } from "@/lib/drizzle/helpers";
 import * as schema from "@/lib/drizzle/schema";
 import { stores } from "@/monitor/stores";
 
@@ -61,16 +62,40 @@ export class Database {
     console.log("[Database] syncFromRemote");
     for (const table of stores.map((s) => s.monitors.map((m) => m.table)).flat()) {
       const rows = await this.remote.select().from(table);
-      await this.local.insert(table).values(rows).onConflictDoUpdate({
-        target: table.id,
-        set: rows,
-      });
+      await this.local
+        .insert(table)
+        .values(rows)
+        .onConflictDoUpdate({
+          target: table.id,
+          set: conflictUpdateSet(table),
+        });
     }
     console.log("[Database] syncFromRemote OK");
   }
 
   async upsert<T extends SQLiteTableWithColumns<any>>(table: T, rows: InferInsertModel<T>[]) {
-    await this.local.insert(table).values(rows);
-    return await this.remote.insert(table).values(rows).returning();
+    if (rows.length === 0) return [];
+    await this.local
+      .insert(table)
+      .values(rows)
+      .onConflictDoUpdate({
+        target: table.id,
+        set: conflictUpdateSet(table),
+      });
+    const batchSize = 10;
+    const results: any[] = [];
+    for (let i = 0; i < rows.length; i += batchSize) {
+      const chunk = rows.slice(i, i + batchSize);
+      const result = await this.remote
+        .insert(table)
+        .values(chunk)
+        .onConflictDoUpdate({
+          target: table.id,
+          set: conflictUpdateSet(table),
+        })
+        .returning();
+      results.push(...result);
+    }
+    return results;
   }
 }
