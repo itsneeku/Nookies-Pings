@@ -1,76 +1,50 @@
 import { Result } from "better-result";
 import WebSocket from "ws";
 
-import { ParseError, EnvValidationError } from "@/lib/errors";
+import { Database } from "@/monitor/db";
+import { Scheduler } from "@/monitor/scheduler";
+import { stores } from "@/monitor/stores";
 
-import { Database } from "./db";
-import { Scheduler } from "./scheduler";
-
-console.log("[Runner] Starting...");
+console.log("[Monitor] Start");
 
 const db = new Database();
 const scheduler = new Scheduler(db);
 
-const loadAllResult = await db.loadAll();
-if (loadAllResult.isErr()) {
-  console.error("[Runner] Failed to load database:", loadAllResult.error);
-  process.exit(1);
-}
+await db.init();
+await scheduler.init();
 
-await scheduler.load();
+new WebSocket(process.env.WORKER_URL)
+  .on("open", () => {
+    console.log("[Monitor] WebSocket connection opened");
+  })
+  .on("close", () => {
+    console.log("[Monitor] WebSocket connection closed");
+  })
+  .on("message", async (data: Buffer) => {
+    const payloadResult = Result.try({
+      try: () => JSON.parse(data.toString()) as WebSocketPayload,
+      catch: (e) => ({ op: "[Monitor] parse WebSocket message", cause: e }),
+    });
+    if (payloadResult.isErr())
+      return console.error("[Monitor] Error parsing WebSocket message:", payloadResult.error);
 
-console.log(scheduler.jobs);
+    const payload = payloadResult.value;
 
-console.log("[Runner] Connecting to WebSocket...");
+    console.log(`[Monitor] Received message: ${JSON.stringify(payload)}`);
 
-const workerUrlResult = Result.try(() => {
-  const workerUrl = process.env.WORKER_URL;
-  if (!workerUrl) {
-    throw new EnvValidationError({ variable: "WORKER_URL" });
-  }
-  return workerUrl;
-});
+    const store = stores.find((s) => s.name === payload.store);
+    const monitor = store?.monitors.find((m) => m.name === payload.monitor);
 
-if (workerUrlResult.isErr()) {
-  console.error("[Runner] Configuration error:", workerUrlResult.error);
-  process.exit(1);
-}
+    if (!store || !monitor)
+      return console.log(`[Monitor] Unknown monitor: ${payload.store}.${payload.monitor}`);
 
-const ws = new WebSocket(workerUrlResult.unwrap());
+    for (const row of payload.message) {
+      await db.local.insert(monitor.table).values(row as (typeof monitor.table)["$inferInsert"]);
 
-ws.on("open", () => {
-  console.log("[Runner] Connected to worker");
-});
+      const tableMap = scheduler.jobsByIdByTableMap.get(monitor.table._.name);
+      if (!tableMap) continue;
 
-ws.on("message", async (data: Buffer) => {
-  const result = await Result.gen(async function* () {
-    const payload = yield* Result.await(
-      Result.tryPromise({
-        try: async () => JSON.parse(data.toString()) as WebSocketPayload,
-        catch: (cause) =>
-          new ParseError({
-            source: "WebSocket message",
-            cause,
-          }),
-      }),
-    );
-
-    console.log(`[Runner] Received message: ${JSON.stringify(payload)}`);
-
-    if (payload.store && payload.monitor && payload.message) {
-      for (const row of payload.message) {
-        yield* Result.await(db.upsertRow(payload.store, payload.monitor, row, true));
-      }
-      await scheduler.reschedule(payload.store, payload.monitor);
+      if (!tableMap.get(row.id as number))
+        tableMap.set(row.id as number, monitor.createJob(db, row.id as number, scheduler.queue));
     }
-    return Result.ok(void 0);
   });
-
-  if (result.isErr()) {
-    console.error("[Runner] Error handling WebSocket message:", result.error);
-  }
-});
-
-ws.on("error", (e: Error) => {
-  console.error("[Runner] WebSocket error:", e);
-});

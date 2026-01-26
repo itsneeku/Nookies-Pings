@@ -1,74 +1,36 @@
 import { Result } from "better-result";
 
-import { PythonError, ParseError } from "@/lib/errors";
-
-const pyRun = <T>(module: string, stdin?: JobData) => {
-  const inputBuffer = Result.try(() =>
-    stdin ? Buffer.from(JSON.stringify(stdin)) : undefined,
-  ).mapError(
-    (e) =>
-      new ParseError({
-        source: "stdin JSON",
-        cause: e,
-      }),
-  );
+export const pyRun = async <T>(stdin: JobData) => {
+  const inputBuffer = Result.try(() => Buffer.from(JSON.stringify(stdin)));
 
   if (inputBuffer.isErr()) {
-    return inputBuffer as Result<never, PythonError | ParseError>;
+    return Result.err({
+      op: "[pyRun] stdin JSON",
+      cause: inputBuffer.error,
+    });
   }
 
-  const proc = Result.try(() =>
-    Bun.spawnSync(["uv", "run", "python", "-m", module], {
-      cwd: process.cwd(),
-      stdin: inputBuffer.unwrap(),
-      stdout: "pipe",
-      stderr: "pipe",
-    }),
-  ).mapError(
-    (cause) =>
-      new PythonError({
-        module,
-        exitCode: null,
-        stderr: String(cause),
-      }),
-  );
+  const proc = Bun.spawnSync(["uv", "run", "python", "-m", "monitor.stores"], {
+    cwd: process.cwd(),
+    stdin: inputBuffer.unwrap(),
+    stdout: "pipe",
+    stderr: "pipe",
+  });
 
-  if (proc.isErr()) {
-    return proc;
+  const stdout = proc.stdout.toString().trim();
+  const stderr = proc.stderr.toString().trim();
+  for (const line of stderr.split("\n")) {
+    if (line.trim()) console.log(`[pyRun] ${line}`);
   }
 
-  const procResult = proc.unwrap();
-  const stdout = procResult.stdout.toString();
-  const stderr = procResult.stderr.toString();
+  if (proc.exitCode !== 0)
+    return Result.err({
+      op: "[pyRun] execute",
+      cause: stderr,
+    });
 
-  if (stderr.trim()) {
-    for (const line of stderr.trim().split("\n")) {
-      if (line.trim()) console.debug(`[python] ${line}`);
-    }
-  }
-
-  if (procResult.exitCode !== 0) {
-    console.error(`Python process exited with code ${procResult.exitCode}: ${stderr}`);
-    return Result.err(
-      new PythonError({
-        module,
-        exitCode: procResult.exitCode,
-        stderr,
-      }),
-    );
-  }
-
-  const result = stdout.trim();
-  return Result.try(() => JSON.parse(result) as T).mapError(
-    (cause) =>
-      new ParseError({
-        source: `Python stdout for ${module}`,
-        cause,
-      }),
-  );
-};
-
-export const pyScrape = (jobData: JobData) => {
-  console.log("[pyScrape] Running job:", jobData);
-  return pyRun<PythonScriptResult>("monitors", jobData);
+  return Result.try(() => JSON.parse(stdout) as T).mapError((cause) => ({
+    op: "[pyRun] stdout",
+    cause,
+  }));
 };

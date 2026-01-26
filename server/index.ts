@@ -2,9 +2,8 @@ import { waitUntil } from "cloudflare:workers";
 import { InteractionResponseType, InteractionType } from "discord.js";
 
 import { commands } from "@/lib/discord/commands";
-
-import { deferInteraction, verifyDiscordRequest, updateInteraction } from "./utils";
-import { WebSocketServer } from "./ws";
+import { deferInteraction, verifyDiscordRequest, updateInteraction } from "@/server/utils";
+import { WebSocketServer } from "@/server/ws";
 
 export default {
   async fetch(request, env) {

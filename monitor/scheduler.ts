@@ -1,70 +1,84 @@
 import { Cron } from "croner";
+import { getTableConfig } from "drizzle-orm/sqlite-core";
 import PQueue from "p-queue";
 
+import { Database } from "@/monitor/db";
 import { stores } from "@/monitor/stores";
 
-import { Database } from "./db";
-
 export class Scheduler {
-  jobs: Map<string, Cron>;
+  jobsByIdByTableMap: Map<string, Map<number, Cron>>;
   db: Database;
   queue: PQueue;
 
   constructor(db: Database) {
     this.db = db;
-    this.jobs = new Map();
+    this.jobsByIdByTableMap = new Map();
     this.queue = new PQueue({ concurrency: 5 });
   }
 
-  async load() {
-    console.log("[Scheduler] Loading jobs...");
-
-    for (const monitor of stores) {
-      for (const [_methodName, method] of Object.entries(monitor.monitors)) {
-        if (method.createJobs) {
-          await method.createJobs(this.db, this.jobs, this.queue);
-        }
+  async init() {
+    console.log("[Scheduler] Init");
+    for (const store of stores) {
+      for (const monitor of store.monitors) {
+        const tableMap = new Map<number, Cron>();
+        this.jobsByIdByTableMap.set(getTableConfig(monitor.table).name, tableMap);
+        await monitor.initJobs(this.db, this.jobsByIdByTableMap, this.queue);
+        console.log(`[Scheduler] ${store.name}.${monitor.name} - ${tableMap.size} jobs`);
       }
     }
-
-    console.log(`[Scheduler] Loaded ${this.jobs.size} cron jobs`);
+    console.log("[Scheduler] Init OK");
   }
 
-  async reschedule(store: string, method: string) {
-    console.log(`[Scheduler] Rescheduling ${store}.${method}...`);
+  // async createJobForRow(row: TableRow, storeName: string, monitorName: string) {
+  //   const store = stores.find((s) => s.name === storeName);
+  //   const monitor = store?.monitors.find((m) => m.name === monitorName);
 
-    const monitor = stores.find((m) => m.store === store);
-    const methodObj = monitor?.monitors[method];
+  //   if (!store || !monitor) return;
 
-    if (!methodObj) {
-      console.error(`[Scheduler] Unknown method: ${store}.${method}`);
-      return;
-    }
+  //   const monitorModule = await import(`@/monitor/stores/${storeName}/${monitorName}`);
+  //   if (!monitorModule.createJob) {
+  //     console.error(`[Scheduler] createJob not found for ${storeName}.${monitorName}`);
+  //     return;
+  //   }
 
-    const tableKey = `${store}_${method}`;
+  //   monitorModule.createJob(row, this.db, this.jobsByIdByTableMap, this.queue);
+  // }
 
-    for (const [key, job] of this.jobs.entries()) {
-      if (key.startsWith(`${tableKey}_`)) {
-        job.stop();
-        this.jobs.delete(key);
-      }
-    }
+  // async reschedule(store: string, monitor: string) {
+  //   console.log(`[Scheduler] Rescheduling ${store}.${monitor}...`);
 
-    if (methodObj.createJobs) {
-      await methodObj.createJobs(this.db, this.jobs, this.queue);
-    }
+  //   const storeObj = stores.find((m) => m.name === store);
+  //   const monitorObj = storeObj?.monitors[monitor];
 
-    console.log(`[Scheduler] Rescheduled ${store}.${method}`);
-  }
+  //   if (!monitorObj) {
+  //     console.error(`[Scheduler] Unknown monitor: ${store}.${monitor}`);
+  //     return;
+  //   }
 
-  stop() {
-    console.log("[Scheduler] Stopping all jobs and clearing queue...");
-    this.queue.pause();
-    this.queue.clear();
-    for (const job of this.jobs.values()) {
-      job.stop();
-    }
-    this.jobs.clear();
-    console.log("[Scheduler] All jobs stopped");
-  }
+  //   const tableKey = `${store}_${monitor}`;
+
+  //   for (const [key, _monitorMap] of this.jobsMap.entries()) {
+  //     if (key.startsWith(`${tableKey}_`)) {
+  //       job.stop();
+  //       this.jobsMap.delete(key);
+  //     }
+  //   }
+
+  //   if (monitorObj.createJobs) {
+  //     await monitorObj.createJobs(this.db, this.jobsMap, this.queue);
+  //   }
+
+  //   console.log(`[Scheduler] Rescheduled ${store}.${monitor}`);
+  // }
+
+  // stop() {
+  //   console.log("[Scheduler] Stopping all jobs and clearing queue...");
+  //   this.queue.pause();
+  //   this.queue.clear();
+  //   for (const job of this.jobsMap.values()) {
+  //     job.stop();
+  //   }
+  //   this.jobsMap.clear();
+  //   console.log("[Scheduler] All jobs stopped");
+  // }
 }

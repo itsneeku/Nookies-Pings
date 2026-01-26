@@ -10,31 +10,27 @@ import {
   APIInteractionResponse,
 } from "discord.js";
 import { D1Result, SQLiteTableWithColumns } from "drizzle-orm/d1";
+import { SQLiteTableWithColumns as sqliteTable } from "drizzle-orm/sqlite-core";
 import PQueue from "p-queue";
 
-import { DatabaseError, DiscordError } from "@/lib/errors";
+import * as schema from "@/lib/drizzle/schema";
 import { Database } from "@/monitor/db";
 
 declare global {
   interface Store {
-    store: string;
+    name: string;
     description: string;
-    monitors: StoreMonitorsMap;
-  }
-
-  interface StoreMonitorsMap {
-    [key: string]: Monitor;
+    monitors: Monitor[];
   }
 
   interface Monitor {
     cron: string;
     name: string;
-    table: SQLiteTableWithColumns<any>;
+    table: SQLiteTableWithColumns;
     subcommand: MonitorSubcommand;
-    createJobs?: JobCreator;
+    initJobs: JobsInitializer;
+    createJob: JobCreator;
   }
-
-  type JobCreator = (db: Database, jobs: Map<string, Cron>, queue: PQueue) => Promise<void>;
 
   interface MonitorSubcommand {
     data: SlashCommandSubcommandBuilder;
@@ -43,24 +39,25 @@ declare global {
         [k: string]: string | number | boolean;
       },
       env: Env,
-    ) => Promise<TableRow[]>;
+    ) => Promise<any[]>;
   }
 
-  interface Product {
+  type JobsInitializer = (
+    db: Database,
+    jobs: Map<string, Map<number, Cron>>,
+    queue: PQueue,
+  ) => Promise<void>;
+
+  type JobCreator = (db: Database, rowId: number, queue: PQueue) => Cron;
+
+  interface NotificationProduct {
+    title: string;
     sku: string;
     url: string;
-    title: string;
-    inStock: boolean;
-    price?: number;
-    image?: string;
-  }
-
-  interface ProductMonitorResult {
-    products: Product[];
-  }
-
-  interface SearchMonitorResult {
-    newProducts: Product[];
+    price: number;
+    image: string;
+    channel: string;
+    role: string;
   }
 
   type CommandExecutor = (
@@ -71,55 +68,12 @@ declare global {
   interface WebSocketPayload {
     store: string;
     monitor: string;
-    message: TableRow[];
+    message: any[];
   }
 
   interface JobData {
     store: string;
     monitor: string;
-    sku?: string;
-    url?: string;
-    products?: unknown[];
     [key: string]: unknown;
-  }
-
-  interface PythonScriptResult {
-    products?: Product[];
-    newProducts?: Product[];
-    internal_sku?: string;
-    [key: string]: unknown;
-  }
-
-  interface TableRow {
-    id: number;
-    [key: string]: unknown;
-  }
-
-  interface ProductJob {
-    channel: string;
-    role: string;
-    sku?: string;
-    url?: string;
-    active?: number;
-  }
-
-  interface SearchJob {
-    channel: string;
-    role: string;
-    url: string;
-  }
-
-  interface ProductRow extends TableRow {
-    sku?: string;
-    url?: string;
-    title?: string;
-    inStock?: number;
-    price?: number;
-    image?: string;
-    active?: number;
-  }
-
-  interface SearchRow extends TableRow {
-    url?: string;
   }
 }
