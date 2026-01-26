@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "deploy": "wrangler deploy && wrangler tail",
-    "runner": "bun run runner/index.ts",
+    "monitor": "bun run monitor/index.ts",
     "db:deploy": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
   },
@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "cloudflare": "^5.2.0",
+    "cloudflare": "^6.0.0-beta.1",
     "drizzle-kit": "^0.31.8",
     "oxfmt": "^0.26.0",
     "oxlint": "^1.41.0",
