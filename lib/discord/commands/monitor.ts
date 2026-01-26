@@ -8,7 +8,6 @@ import {
   SlashCommandSubcommandGroupBuilder,
 } from "discord.js";
 
-import { DiscordError } from "@/lib/errors";
 import { stores } from "@/monitor/stores";
 
 const command = stores.reduce(
@@ -30,7 +29,7 @@ const command = stores.reduce(
               ),
           ),
         new SlashCommandSubcommandGroupBuilder()
-          .setName(store.store)
+          .setName(store.name)
           .setDescription(store.description),
       ),
     ) as SlashCommandBuilder,
@@ -38,36 +37,36 @@ const command = stores.reduce(
 );
 
 const execute = async (interaction: APIApplicationCommandInteraction, env: Env) => {
-  const cmd = interaction.data.type === ApplicationCommandType.ChatInput ? interaction.data.options?.[0] : undefined;
-  const subcommand = cmd?.type === ApplicationCommandOptionType.SubcommandGroup ? cmd.options?.[0] : undefined;
+  const cmd =
+    interaction.data.type === ApplicationCommandType.ChatInput
+      ? interaction.data.options?.[0]
+      : undefined;
+  const subcommand =
+    cmd?.type === ApplicationCommandOptionType.SubcommandGroup ? cmd.options?.[0] : undefined;
 
   if (!subcommand) {
-    return Result.err(
-      new DiscordError({
-        operation: "execute command",
-        cause: "Invalid command structure",
-      }),
-    );
+    return Result.err({
+      op: "[execute] command structure",
+      cause: "Invalid command structure",
+    });
   }
 
-  const store = stores.find((m) => m.store === cmd?.name);
-  const storeMonitor = store?.monitors[subcommand.name];
+  const store = stores.find((m) => m.name === cmd?.name);
+  const monitor = store?.monitors.find((m) => m.subcommand.data.name === subcommand.name);
 
-  if (!store || !storeMonitor) {
-    return Result.err(
-      new DiscordError({
-        operation: "execute command",
-        cause: "Monitor not found",
-      }),
-    );
+  if (!store || !monitor) {
+    return Result.err({
+      op: "[execute] find monitor",
+      cause: "Monitor not found",
+    });
   }
 
   const options = Object.fromEntries((subcommand.options || []).map((o: any) => [o.name, o.value]));
-  const upsertResult = await storeMonitor.subcommand.handler(options, env);
+  const upsertResult = await monitor.subcommand.handler(options, env);
 
   await env.DO.getByName(env.WS_SERVER_ID).broadcast({
-    store: store.store,
-    monitor: storeMonitor.name,
+    store: store.name,
+    monitor: monitor.name,
     message: upsertResult,
   });
 

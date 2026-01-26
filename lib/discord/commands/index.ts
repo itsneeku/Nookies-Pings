@@ -1,6 +1,6 @@
 import { REST, Routes } from "discord.js";
 
-import monitor from "./monitor";
+import monitor from "@/lib/discord/commands/monitor";
 
 export const commands = {
   monitor,
