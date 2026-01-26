@@ -1,5 +1,5 @@
-from monitors._utils.base import Product, get_random_ipv6
-from monitors._utils.ssr import (
+from monitor.utils.base import get_random_ipv6
+from monitor.utils.ssr import (
   extract_next_ssr_data_html,
   extract_next_ssr_data_zendriver,
 )
@@ -27,11 +27,11 @@ async def main(input):
   )
   sold_by_wm = item.get("sellerId") == "0"
 
-  return Product(
-    sku=item.get("usItemId"),
-    url=f"https://www.walmart.ca/en/ip/{item.get('usItemId')}",
-    title=item.get("name"),
-    inStock=sold_by_wm and item.get("availabilityStatusV2").get("value") == "IN_STOCK",
-    price=item.get("priceInfo").get("currentPrice").get("price"),
-    image=item.get("imageInfo").get("thumbnailUrl"),
-  )
+  return {
+    "title": item.get("name"),
+    "inStock": 1
+    if sold_by_wm and item.get("availabilityStatusV2").get("value") == "IN_STOCK"
+    else 0,
+    "price": item.get("priceInfo").get("currentPrice").get("price"),
+    "image": item.get("imageInfo").get("thumbnailUrl"),
+  }

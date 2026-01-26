@@ -1,7 +1,5 @@
-from monitors._utils.base import Product, SearchMonitorResult
-from monitors._utils.ssr import extract_next_ssr_data_zendriver
+from monitor.utils.ssr import extract_next_ssr_data_zendriver
 import zendriver as zd
-import json
 
 
 async def main(input):
@@ -20,20 +18,17 @@ async def main(input):
     .get("items")
   )
 
-  new_products = []
-
-  for p in items:
-    product = Product(
-      sku=p.get("usItemId"),
-      url=f"https://www.walmart.ca/en/ip/{p.get('usItemId')}",
-      title=p.get("name"),
-      inStock=p.get("sellerId") == "0"
-      and p.get("availabilityStatusV2").get("value") == "IN_STOCK",
-      price=p.get("price"),
-      image=p.get("imageInfo").get("thumbnailUrl"),
-    )
-    new_products.append(product)
-
-  await browser.stop()
-
-  return SearchMonitorResult(newProducts=new_products)
+  return [
+    {
+      "sku": p.get("usItemId"),
+      "url": f"https://www.walmart.ca/en/ip/{p.get('usItemId')}",
+      "title": p.get("name"),
+      "inStock": 1
+      if p.get("sellerId") == "0"
+      and p.get("availabilityStatusV2").get("value") == "IN_STOCK"
+      else 0,
+      "price": p.get("price"),
+      "image": p.get("imageInfo").get("thumbnailUrl"),
+    }
+    for p in items
+  ]
