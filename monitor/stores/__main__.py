@@ -9,7 +9,7 @@ from dataclasses import asdict
 
 async def run_module(data: dict):
   try:
-    file_path = Path(__file__).parent / data["store"] / f"{data['method']}.py"
+    file_path = Path(__file__).parent / data["store"] / f"{data['monitor']}.py"
 
     if not file_path.exists():
       raise FileNotFoundError(f"Script not found at {file_path}")
@@ -23,7 +23,7 @@ async def run_module(data: dict):
 
     result = await module.main(data)
 
-    print(json.dumps(asdict(result)))
+    print(json.dumps(result))
 
   except Exception as e:
     print(
