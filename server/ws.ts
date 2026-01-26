@@ -2,7 +2,14 @@ import { Result } from "better-result";
 import { DurableObject } from "cloudflare:workers";
 
 export class WebSocketServer extends DurableObject<Env> {
-  override async fetch(_request: Request) {
+  override async fetch(request: Request) {
+    const url = new URL(request.url);
+    const token = url.searchParams.get("token");
+
+    if (token !== this.env.WS_SECRET) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
     const webSocketPair = new WebSocketPair();
     const [client, server] = Object.values(webSocketPair);
 

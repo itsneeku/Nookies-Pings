@@ -13,7 +13,7 @@ const scheduler = new Scheduler(db);
 await db.init();
 await scheduler.init();
 
-new WebSocket(process.env.WORKER_URL)
+new WebSocket(`${process.env.WORKER_URL}?token=${process.env.WS_SECRET}`)
   .on("open", () => {
     console.log("[Monitor] WebSocket connection opened");
   })
