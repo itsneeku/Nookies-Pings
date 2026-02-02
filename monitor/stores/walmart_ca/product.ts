@@ -7,7 +7,7 @@ const outputSchema = v.object({
   title: v.string(),
   inStock: v.boolean(),
   price: v.optional(v.number()),
-  image: v.string(),
+  image: v.optional(v.string()),
 });
 
 type Output = v.InferOutput<typeof outputSchema>;
