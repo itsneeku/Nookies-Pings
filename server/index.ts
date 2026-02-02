@@ -1,7 +1,8 @@
 import { waitUntil } from "cloudflare:workers";
 import { InteractionResponseType, InteractionType } from "discord.js";
 
-import { commands } from "@/lib/discord/commands";
+import { commands } from "@/lib/discord";
+import { logger } from "@/lib/logger";
 import { deferInteraction, verifyDiscordRequest, updateInteraction } from "@/server/utils";
 import { WebSocketServer } from "@/server/ws";
 
@@ -14,15 +15,13 @@ export default {
 
     // Verify Discord Request
     const verifyResult = await verifyDiscordRequest(request, env);
-
     if (verifyResult.isErr()) {
-      console.error("Request validation failed:", verifyResult.error);
+      logger.error({ error: verifyResult.error }, "Can't verify discord request");
       return Response.json({ error: "Invalid Request" }, { status: 401 });
     }
 
     // Handle Interactions
     const interaction = verifyResult.value;
-
     switch (interaction.type) {
       case InteractionType.Ping:
         return Response.json({ type: InteractionResponseType.Pong });
@@ -31,22 +30,35 @@ export default {
         const command = commands[interaction.data.name as keyof typeof commands];
 
         if (!command) {
-          console.error(`Unknown command: ${interaction.data.name}`);
+          logger.error({ interaction }, "Unknown command");
           return Response.json({ error: "Command not found" }, { status: 400 });
         }
 
         waitUntil(
           (async () => {
             const result = await command.execute(interaction, env);
-
-            if (result.isErr()) console.error("Command execution failed:", result.error);
+            if (result.isErr()) {
+              logger.error(
+                {
+                  interaction,
+                  error: result.error,
+                },
+                "Command execution failed",
+              );
+            }
 
             const updateResult = await updateInteraction(interaction, env, {
-              content: result.isErr() ? "An unexpected error occurred" : result.value,
+              content: result.isErr() ? "Something went wrong" : result.value,
             });
 
             if (updateResult.isErr())
-              console.error("Failed to update interaction:", updateResult.error);
+              logger.error(
+                {
+                  interaction: interaction,
+                  error: updateResult.error,
+                },
+                "Interaction update failed",
+              );
           })(),
         );
 
@@ -54,6 +66,7 @@ export default {
       }
 
       default:
+        logger.error({ interaction }, "Unknown interaction type");
         return Response.json({ error: "Unknown Interaction" }, { status: 400 });
     }
   },

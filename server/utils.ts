@@ -24,44 +24,17 @@ export const verifyDiscordRequest = async (request: Request, env: Env) => {
   const signature = request.headers.get("x-signature-ed25519");
   const timestamp = request.headers.get("x-signature-timestamp");
 
-  if (!signature || !timestamp) {
-    return Result.err({
-      op: "[verifyDiscordRequest] verify headers",
-      cause: "Missing signature or timestamp headers",
-    });
-  }
+  if (!signature || !timestamp) return Result.err("Missing signature/timestamp headers");
 
-  const body = await request.text();
+  return await Result.gen(async function* () {
+    const body = yield* Result.await(Result.tryPromise(() => request.text()));
 
-  return Result.gen(async function* () {
     const valid = yield* Result.await(
-      Result.tryPromise({
-        try: () => verifyKey(body, signature, timestamp, env.DISCORD_PUB_KEY),
-        catch: (cause) => ({
-          op: "[verifyDiscordRequest] verify signature",
-          cause,
-        }),
-      }),
+      Result.tryPromise(() => verifyKey(body, signature, timestamp, env.DISCORD_PUB_KEY)),
     );
+    if (!valid) return Result.err("Invalid request signature");
 
-    if (!valid) {
-      return Result.err({
-        op: "[verifyDiscordRequest] verify signature",
-        cause: "Invalid signature",
-      });
-    }
-
-    const parsed = yield* Result.await(
-      Result.tryPromise({
-        try: async () => JSON.parse(body) as APIInteraction,
-        catch: (cause) => ({
-          op: "[verifyDiscordRequest] parse body",
-          cause,
-        }),
-      }),
-    );
-
-    return Result.ok(parsed);
+    return Result.try(() => JSON.parse(body) as APIInteraction);
   });
 };
 
@@ -69,14 +42,10 @@ export const updateInteraction = async (
   interaction: APIApplicationCommandInteraction,
   env: Env,
   body?: unknown,
-) => {
-  return Result.tryPromise({
-    try: async () => {
-      await new Promise((resolve) => setTimeout(resolve, 10));
-      await new REST()
-        .setToken(env.DISCORD_TOKEN)
-        .patch(Routes.webhookMessage(interaction.application_id, interaction.token), { body });
-    },
-    catch: (cause) => ({ op: "[updateInteraction] execute", cause }),
+) =>
+  Result.tryPromise(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await new REST()
+      .setToken(env.DISCORD_TOKEN)
+      .patch(Routes.webhookMessage(interaction.application_id, interaction.token), { body });
   });
-};

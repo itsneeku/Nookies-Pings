@@ -1,6 +1,8 @@
 import { Result } from "better-result";
 import { DurableObject } from "cloudflare:workers";
 
+import { logger } from "@/lib/logger";
+
 export class WebSocketServer extends DurableObject<Env> {
   override async fetch(request: Request) {
     const url = new URL(request.url);
@@ -26,31 +28,21 @@ export class WebSocketServer extends DurableObject<Env> {
     const websockets = this.ctx.getWebSockets();
     if (websockets.length === 0) return;
 
-    const messageResult = Result.try({
-      try: () => JSON.stringify(payload),
-      catch: (e) => ({ op: "[WebSocketServer] JSON.stringify", cause: e }),
-    });
+    const message = Result.try(() => JSON.stringify(payload));
+    if (message.isErr())
+      return logger.error(
+        { module: "WebSocketServer", payload, error: message.error },
+        "Payload serialization failed",
+      );
 
-    await messageResult.match({
-      ok: async (message) => {
-        for (const ws of websockets) {
-          const sendResult = Result.try({
-            try: () => ws.send(message),
-            catch: (e) => ({ op: "[WebSocketServer] send", cause: e }),
-          });
-
-          sendResult.match({
-            ok: () => {},
-            err: (err) => {
-              console.error("[WebSocketServer] Broadcast error:", err);
-              ws.close();
-            },
-          });
-        }
-      },
-      err: async (err) => {
-        console.error("[WebSocketServer] Broadcast error:", err);
-      },
-    });
+    for (const ws of websockets) {
+      Result.try(() => ws.send(message.value)).match({
+        ok: () => logger.info({ module: "WebSocketServer", ws, payload }, "Broadcast successful"),
+        err: (error) => {
+          logger.error({ module: "WebSocketServer", error, ws, payload }, "Broadcast failed");
+          ws.close();
+        },
+      });
+    }
   }
 }

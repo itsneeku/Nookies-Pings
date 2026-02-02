@@ -1,5 +1,4 @@
 import { Result } from "better-result";
-import { Cron } from "croner";
 import {
   SlashCommandBuilder,
   SlashCommandSubcommandGroupBuilder,
@@ -8,13 +7,19 @@ import {
   APIApplicationCommandInteractionDataBasicOption,
   InteractionType,
   APIInteractionResponse,
+  type APIMessage,
 } from "discord.js";
-import { D1Result, SQLiteTableWithColumns } from "drizzle-orm/d1";
-import { SQLiteTableWithColumns as sqliteTable } from "drizzle-orm/sqlite-core";
-import PQueue from "p-queue";
+import { InferSelectModel } from "drizzle-orm";
+import { SQLiteTableWithColumns } from "drizzle-orm/d1";
+import {
+  SQLiteTableWithColumns as sqliteTable,
+  type InferInsertModel,
+} from "drizzle-orm/sqlite-core";
 
+import type { ScheduledJob, Scheduler } from "@/lib/scheduler";
+
+import { Database } from "@/lib/db";
 import * as schema from "@/lib/drizzle/schema";
-import { Database } from "@/monitor/db";
 
 declare global {
   interface Store {
@@ -24,31 +29,59 @@ declare global {
   }
 
   interface Monitor {
+    config: MonitorConfig;
+    run: MonitorRunner;
+    customJobCreator?: MonitorJobCreator;
+  }
+
+  interface MonitorConfig {
+    store: string;
+    type: string;
+    description: string;
     cron: string;
-    name: string;
-    table: SQLiteTableWithColumns;
-    subcommand: MonitorSubcommand;
-    initJobs: JobsInitializer;
-    createJob: JobCreator;
+    input: MonitorInput;
   }
 
-  interface MonitorSubcommand {
-    data: SlashCommandSubcommandBuilder;
-    handler: (
-      options: {
-        [k: string]: string | number | boolean;
-      },
-      env: Env,
-    ) => Promise<any[]>;
+  interface MonitorInput {
+    [key: string]: {
+      description: string;
+      type: "string" | "number";
+      unique?: boolean;
+      required?: boolean;
+    };
   }
 
-  type JobsInitializer = (
-    db: Database,
-    jobs: Map<string, Map<number, Cron>>,
-    queue: PQueue,
-  ) => Promise<void>;
+  type MonitorRunner = (prevData: any, input: any) => Promise<Result<MonitorRunOk, PyRunError>>;
 
-  type JobCreator = (db: Database, rowId: number, queue: PQueue) => Cron;
+  type MonitorJobCreator = (rows: { id: number }[]) => MonitorJob[];
+
+  type MonitorJob = { id: number; run: MonitorRunner };
+
+  interface MonitorRunOk {
+    notify: boolean;
+    data: any;
+  }
+
+  interface PyRunError {
+    output?: string;
+    logs?: string;
+    exitCode?: number;
+    error?: unknown;
+  }
+
+  // interface MonitorSubcommand {
+  //   data: SlashCommandSubcommandBuilder;
+  //   handler: (
+  //     options: {
+  //       [k: string]: string | number | boolean;
+  //     },
+  //     env: Env,
+  //   ) => Promise<InferInsertModel<SQLiteTableWithColumns<any>>[]>;
+  // }
+
+  // type JobsInitializer = (scheduler: Scheduler) => Promise<void>;
+
+  // type JobCreator = (scheduler: Scheduler, rowId: number) => ScheduledJob;
 
   interface NotificationProduct {
     title: string;
@@ -68,12 +101,12 @@ declare global {
   interface WebSocketPayload {
     store: string;
     monitor: string;
-    message: any[];
+    message: InferSelectModel<typeof schema.table>[];
   }
 
-  interface JobData {
+  interface PyInput {
     store: string;
-    monitor: string;
+    type: string;
     [key: string]: unknown;
   }
 }

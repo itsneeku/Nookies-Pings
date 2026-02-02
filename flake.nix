@@ -24,6 +24,7 @@
             [
               bun
               uv
+              nodejs_latest
             ]
             ++ [ ndppd.legacyPackages.${system}.ndppd ];
         };
