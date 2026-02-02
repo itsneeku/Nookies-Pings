@@ -10,7 +10,10 @@ import {
   TextDisplayBuilder,
 } from "discord.js";
 
+import { logger } from "../logger";
+
 export const notify = (product: NotificationProduct) => {
+  logger.info({ product }, "Notifying");
   const message = new TextDisplayBuilder().setContent(
     `||${product.title} ${roleMention(product.role)}||`,
   );

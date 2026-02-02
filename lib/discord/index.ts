@@ -1,4 +1,5 @@
 import { REST, Routes } from "discord.js";
+import { fileURLToPath } from "url";
 
 import monitor from "@/lib/discord/commands/monitor";
 
@@ -15,3 +16,9 @@ export const deployCommands = async () =>
         body: await Promise.all(Object.values(commands).map((cmd) => cmd.command.toJSON())),
       },
     );
+
+if (import.meta.url && process.argv[1] === fileURLToPath(import.meta.url)) {
+  console.log("Deploying commands...");
+  await deployCommands();
+  console.log("Commands deployed!");
+}

@@ -1,63 +1,27 @@
-import { index, int, real, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
-
-export const commonFields = {
-  id: int().primaryKey({ autoIncrement: true }),
-  channel: text().notNull(),
-  role: text().notNull(),
-};
-
-export const WalmartCAProductTable = sqliteTable(
-  "walmart_ca_product",
+import { sql } from "drizzle-orm";
+import { index, int, sqliteTable, text, unique } from "drizzle-orm/sqlite-core";
+export const table = sqliteTable(
+  "monitors",
   {
-    sku: text().notNull().unique(),
-    url: text().notNull().unique(),
-    title: text(),
-    inStock: int().notNull().default(0),
-    price: real(),
-    image: text(),
+    id: int().primaryKey({ autoIncrement: true }),
+    store: text().notNull(),
+    type: text().notNull(),
+    input: text({ mode: "json" }).notNull().default("{}"),
+    inputUnique: text({ mode: "json" }).notNull().default("{}"),
+    prevData: text({ mode: "json" }).notNull().default("{}"),
+    channel: text().notNull(),
+    role: text().notNull(),
     active: int().notNull().default(0),
-    ...commonFields,
+    createdAt: int({ mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+
+    updatedAt: int({ mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
   },
   (table) => [
-    uniqueIndex("walmart_ca_product_sku_idx").on(table.sku),
-    uniqueIndex("walmart_ca_product_url_idx").on(table.url),
-    index("walmart_ca_product_active_idx").on(table.active),
+    unique("monitors_unique").on(table.store, table.type, table.inputUnique),
+    index("monitors_store_type_active_idx").on(table.store, table.type, table.active),
   ],
-);
-
-export const WalmartCASearchTable = sqliteTable(
-  "walmart_ca_search",
-  {
-    url: text().notNull().unique(),
-    ...commonFields,
-  },
-  (table) => [index("walmart_ca_search_url_idx").on(table.url)],
-);
-
-export const EBGamesCAProductTable = sqliteTable(
-  "ebgames_ca_product",
-  {
-    sku: text().unique(),
-    url: text().notNull().unique(),
-    title: text(),
-    inStock: int().notNull().default(0),
-    price: real(),
-    image: text(),
-    active: int().notNull().default(0),
-    ...commonFields,
-  },
-  (table) => [
-    uniqueIndex("ebgames_ca_product_sku_idx").on(table.sku),
-    uniqueIndex("ebgames_ca_product_url_idx").on(table.url),
-    index("ebgames_ca_product_active_idx").on(table.active),
-  ],
-);
-
-export const EBGamesCASearchTable = sqliteTable(
-  "ebgames_ca_search",
-  {
-    url: text().notNull().unique(),
-    ...commonFields,
-  },
-  (table) => [index("ebgames_ca_search_url_idx").on(table.url)],
 );
